@@ -8,7 +8,7 @@
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        /* NPF Official Color Palette */
+        /* NPF Official Color Palette & OLED Optimization */
         :root { 
             --npf-base: #182825; 
             --npf-action: #016fb9; 
@@ -18,6 +18,7 @@
             --text-light: #f8fafc;
         }
         
+        /* Mobile Viewport Fix */
         body, html { 
             margin: 0; padding: 0; 
             height: 100dvh; 
@@ -50,7 +51,7 @@
         .grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         
-        select { background: var(--oled-black); border: 1px solid #445; color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 13px; }
+        select { background: var(--oled-black); border: 1px solid #445; color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 13px; box-sizing: border-box; }
         select:disabled { opacity: 0.5; cursor: not-allowed; }
         
         .btn-action { width: 100%; padding: 16px; background: var(--npf-action); color: white; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; flex-shrink: 0; }
@@ -62,7 +63,7 @@
     <div id="gate-screen">
         <div class="gate-card">
             <h2 style="color:var(--text-light); margin-top:0; margin-bottom:5px;">বাংলাদেশ রেলওয়ে</h2>
-            <p style="color:var(--npf-accent); font-size:12px; margin-bottom:25px; text-transform: uppercase;">Dynamic Route Telemetry</p>
+            <p style="color:var(--npf-accent); font-size:12px; margin-bottom:25px; text-transform: uppercase;">National Transit Telemetry</p>
             
             <input type="text" id="pName" class="gate-input" placeholder="Passenger Name / ID">
             
@@ -86,36 +87,69 @@
             <div class="grid">
                 <select id="tSelect" onchange="updateStationRoute()">
                     <option value="">-- SELECT YOUR TRAIN --</option>
-                    <optgroup label="Dhaka - Chattogram Route">
+                    <optgroup label="Intercity (Meter/Dual Gauge)">
                         <option value="701-702_Subarna">701/702 Subarna Express</option>
                         <option value="703-704_Mohanagar">703/704 Mohanagar Goduli/Provati</option>
-                        <option value="741-742_Turna">741/742 Turna Express</option>
-                        <option value="787-788_Sonar_Bangla">787/788 Sonar Bangla Express</option>
-                    </optgroup>
-                    <optgroup label="Dhaka - Sylhet / Noakhali Route">
-                        <option value="709-710_Parabat">709/710 Parabat Express</option>
-                        <option value="711-712_Upukol">711/712 Upukol Express</option>
-                        <option value="717-718_Joyantika">717/718 Joyantika Express</option>
-                        <option value="739-740_Upaban">739/740 Upaban Express</option>
-                        <option value="773-774_Kalani">773/774 Kalani Express</option>
-                    </optgroup>
-                    <optgroup label="Dhaka - North Bengal Route">
                         <option value="705-706_Ekota">705/706 Ekota Express</option>
                         <option value="707-708_Tista">707/708 Tista Express</option>
+                        <option value="709-710_Parabat">709/710 Parabat Express</option>
+                        <option value="711-712_Upukol">711/712 Upukol Express</option>
+                        <option value="713-714_Karutoa">713/714 Karutoa Express</option>
+                        <option value="717-718_Joyantika">717/718 Joyantika Express</option>
+                        <option value="719-720_Paharika">719/720 Paharika Express</option>
+                        <option value="721-722_Mohanagar">721/722 Mohanagar Express</option>
+                        <option value="723-724_Uddayan">723/724 Uddayan Express</option>
+                        <option value="729-730_Meghna">729/730 Meghna Express</option>
+                        <option value="735-736_Agnibina">735/736 Agnibina Express</option>
+                        <option value="737-738_Egarosindhur_Provati">737/738 Egarosindhur Provati</option>
+                        <option value="749-750_Egarosindhur_Goduli">749/750 Egarosindhur Goduli</option>
+                        <option value="739-740_Upaban">739/740 Upaban Express</option>
+                        <option value="741-742_Turna">741/742 Turna Express</option>
+                        <option value="743-744_Bharamaputra">743/744 Bharamaputra</option>
+                        <option value="745-746_Jamuna">745/746 Jamuna Express</option>
+                        <option value="751-752_Lalmoni">751/752 Lalmoni Express</option>
                         <option value="757-758_Drutojan">757/758 Drutojan Express</option>
+                        <option value="767-768_Dolonchapa">767/768 Dolonchapa Express</option>
                         <option value="771-772_Rangpur">771/772 Rangpur Express</option>
-                        <option value="765-766_Nilsagar">765/766 Nilsagar Express</option>
+                        <option value="773-774_Kalani">773/774 Kalani Express</option>
+                        <option value="777-778_Haor">777/778 Haor Express</option>
+                        <option value="781-782_Kishorgonj">781/782 Kishorgonj Express</option>
+                        <option value="785-786_Bijoy">785/786 Bijoy Express</option>
+                        <option value="787-788_Sonar_Bangla">787/788 Sonar Bangla Express</option>
+                        <option value="813-814_Coxs_Bazar">813/814 Cox's Bazar Express</option>
+                        <option value="815-816_Parjotak">815/816 Parjotak Express</option>
                     </optgroup>
-                    <optgroup label="Broad Gauge (Khulna/Rajshahi)">
+
+                    <optgroup label="Intercity (Broad Gauge)">
+                        <option value="715-716_Kapotaskh">715/716 Kapotaskh Express</option>
                         <option value="725-726_Sundarban">725/726 Sundarban Express</option>
+                        <option value="727-728_Rupsha">727/728 Rupsha Express</option>
+                        <option value="731-732_Barendra">731/732 Barendra Express</option>
+                        <option value="733-734_Titumir">733/734 Titumir Express</option>
+                        <option value="747-748_Simanta">747/748 Simanta Express</option>
                         <option value="753-754_Silk_City">753/754 Silk City Express</option>
+                        <option value="755-756_Madhumati">755/756 Madhumati Express</option>
                         <option value="759-760_Padma">759/760 Padma Express</option>
+                        <option value="761-762_Sagardari">761/762 Sagardari Express</option>
                         <option value="763-764_Chittra">763/764 Chittra Express</option>
+                        <option value="765-766_Nilsagar">765/766 Nilsagar Express</option>
+                        <option value="769-770_Dhumketue">769/770 Dhumketue Express</option>
+                        <option value="775-776_Sirajgong">775/776 Sirajgong Express</option>
+                        <option value="779-780_Kalukhali_Vatiapara">779/780 Kalukhali-Vatiapara</option>
+                        <option value="3107-3110_Moitree">3107/3110 Moitree Express (Intl)</option>
                     </optgroup>
-                    <optgroup label="Mail / Express">
-                        <option value="1-2_Dhaka_Mail">1/2 Dhaka Mail</option>
+
+                    <optgroup label="Mail / Express / Commuter">
+                        <option value="1-2_Dhaka_Mail">1/2 Dhaka/Chittagong Mail</option>
                         <option value="3-4_Karnaphuli">3/4 Karnaphuli Express</option>
-                        <option value="11-12_Noakhali_Exp">11/12 Dhaka/Noakhali Express</option>
+                        <option value="7-8_Uttarbanga">7/8 Uttarbanga Mail</option>
+                        <option value="9-10_Surma">9/10 Surma Mail</option>
+                        <option value="11-12_Noakhali">11/12 Dhaka/Noakhali Express</option>
+                        <option value="13-14_Jalalabad">13/14 Jalalabad Express</option>
+                        <option value="17-18_Kushiara">17/18 Kushiara Express</option>
+                        <option value="33-36_Titas">33/36 Titas Commuter</option>
+                        <option value="37-38_Mymensingh">37/38 Mymensingh Express</option>
+                        <option value="67-68_Chattala">67/68 Chattala Express</option>
                     </optgroup>
                 </select>
             </div>
@@ -151,31 +185,44 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>
-        // --- ROUTE MATRIX DATABASE ---
-        // Maps Train IDs to their specific station stops
+        // --- MASSIVE DYNAMIC ROUTE MATRIX ---
+        // Maps every Train ID to its specific intermediate station stops
         const routeMatrix = {
             "701-702_Subarna": ["Dhaka (Kamlapur)", "Dhaka Airport", "Chittagong"],
+            "787-788_Sonar_Bangla": ["Dhaka", "Dhaka Airport", "Chittagong"],
             "703-704_Mohanagar": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
             "741-742_Turna": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
-            "787-788_Sonar_Bangla": ["Dhaka (Kamlapur)", "Dhaka Airport", "Chittagong"],
+            "813-814_Coxs_Bazar": ["Dhaka", "Dhaka Airport", "Chittagong", "Cox's Bazar"],
+            "815-816_Parjotak": ["Dhaka", "Dhaka Airport", "Chittagong", "Cox's Bazar"],
             
             "711-712_Upukol": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
-            "11-12_Noakhali_Exp": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
+            "11-12_Noakhali": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
             
             "709-710_Parabat": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Azampur", "Akhaura", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
             "717-718_Joyantika": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Mukundapur", "Harashpur", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Maijgaon", "Sylhet"],
             "739-740_Upaban": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Shaistaganj", "Srimangal", "Bhanugach", "Kulaura", "Maijgaon", "Sylhet"],
             "773-774_Kalani": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Shaistaganj", "Srimangal", "Bhanugach", "Kulaura", "Maijgaon", "Sylhet"],
             
-            "705-706_Ekota": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Thakurgaon Road", "Panchagarh"],
-            "757-758_Drutojan": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Thakurgaon Road", "Panchagarh"],
-            "771-772_Rangpur": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Bogura", "Sonatola", "Bonarpara", "Gaibandha", "Bamondanga", "Pirgachha", "Kaunia", "Kurigram", "Rangpur"],
+            "705-706_Ekota": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Setabganj", "Pirganj", "Thakurgaon Road", "Ruhea", "Panchagarh"],
+            "757-758_Drutojan": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Setabganj", "Pirganj", "Thakurgaon Road", "Ruhea", "Panchagarh"],
             "765-766_Nilsagar": ["Dhaka Cantt", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
             
+            "771-772_Rangpur": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Bogura", "Sonatola", "Bonarpara", "Gaibandha", "Bamondanga", "Pirgachha", "Kaunia", "Kurigram", "Rangpur"],
+            "751-752_Lalmoni": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Bogura", "Sonatola", "Bonarpara", "Gaibandha", "Bamondanga", "Pirgachha", "Kaunia", "Lalmonirhat"],
+            
+            "753-754_Silk_City": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
+            "759-760_Padma": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
+            "769-770_Dhumketue": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
             "725-726_Sundarban": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi", "Hardinge Bridge", "Poradah", "Kushtia", "Chuadanga", "Darshana", "Kotchandpur", "Jessore", "Noapara", "Khulna"],
             "763-764_Chittra": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi", "Hardinge Bridge", "Poradah", "Kushtia", "Chuadanga", "Darshana", "Kotchandpur", "Jessore", "Noapara", "Khulna"],
-            "753-754_Silk_City": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
-            "759-760_Padma": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"]
+            
+            "707-708_Tista": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Melandah Bazar", "Islampur Bazar", "Dewanganj Bazar"],
+            "737-738_Egarosindhur_Provati": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
+            "749-750_Egarosindhur_Goduli": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
+            "777-778_Haor": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Gouripur", "Shyamganj", "Netrokona", "Thakurkrok", "Barhatta", "Mohanganj"],
+            
+            "719-720_Paharika": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Comilla", "Akhaura", "Harashpur", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
+            "723-724_Uddayan": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Comilla", "Akhaura", "Harashpur", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"]
         };
 
         const defaultStations = ["Dhaka", "Dhaka Airport", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Bhairab Bazar", "Akhaura", "Comilla", "Laksam", "Noakhali", "Joydebpur", "Tangail", "Ishurdi", "Parbatipur", "Santahar", "Dinajpur"];
@@ -235,6 +282,7 @@
             }
         });
 
+        // --- CORE INITIALIZATION ---
         function initApp(mode) {
             uName = document.getElementById('pName').value;
             if(!uName) return alert("Verification Required: Enter your Name or Ticket ID");
@@ -256,7 +304,10 @@
         let map, markers = {};
         function loadMap() {
             map = L.map('map', {zoomControl: false}).setView([23.8103, 90.4125], 7);
+            
+            // Base Dark Topography
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+            // OpenRailwayMap Overlay
             L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.6 }).addTo(map);
             
             db.ref('active_trains').on('value', snap => {
@@ -264,12 +315,12 @@
                 for(let k in markers) map.removeLayer(markers[k]);
                 for(let k in data) {
                     const p = data[k];
-                    if(Date.now() - p.ts < 600000) {
+                    if(Date.now() - p.ts < 600000) { // Expire points older than 10 mins
                         markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
                             <b style="color:var(--npf-action); font-size:14px;">${p.train.replace(/_/g, ' ')}</b><br>
                             Tracker: ${p.name}<br>
                             Station: ${p.station}<br>
-                            Crowd: ${p.crowd}<br>
+                            Crowd: ${p.crowd} | ${p.seat}<br>
                             Speed: <b>${p.speed} KM/H</b>
                         `);
                     }
@@ -303,12 +354,14 @@
                     const cLng = pos.coords.longitude;
                     const now = Date.now();
 
+                    // Heuristic Spoofing Mitigation (Discard > 130 km/h jump)
                     if (lastLat && lastTs) {
                         const distKm = getHaversine(lastLat, lastLng, cLat, cLng);
                         const timeHr = (now - lastTs) / 3600000;
                         if (timeHr > 0 && (distKm / timeHr) > 130) return; 
                     }
 
+                    // Exponential Moving Average (EMA) Smoothing
                     const alpha = 0.3;
                     if (sLat === 0) { sLat = cLat; sLng = cLng; }
                     sLat = (cLat * alpha) + (sLat * (1 - alpha));
@@ -323,6 +376,7 @@
                         name: uName, train: train,
                         station: document.getElementById('tStation').value,
                         crowd: document.getElementById('tCrowd').value,
+                        seat: document.getElementById('tSeat').value,
                         lat: sLat, lng: sLng, speed: speed, ts: now
                     };
 
