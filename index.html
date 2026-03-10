@@ -3,245 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BR Live Pro | Real-Time Railway Tracking</title>
+    <title>BR Live Pro | Command Center</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    
     <style>
-        :root {
-            --primary: #00ff88;
-            --accent: #3b82f6;
-            --bg: #020617;
-            --card: #1e293b;
-            --text: #f8fafc;
-            --danger: #ef4444;
-        }
-
+        :root { --primary: #00ff88; --bg: #020617; --card: #1e293b; --text: #f8fafc; }
+        
+        /* Force the body to take full screen without scrolling */
         body, html { 
-            margin: 0; padding: 0; height: 100%; 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            background: var(--bg); color: var(--text);
-            overflow: hidden;
+            margin: 0; padding: 0; height: 100vh; width: 100vw;
+            font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text);
+            display: flex; flex-direction: column; overflow: hidden;
         }
 
-        .app-container { display: flex; flex-direction: column; height: 100vh; }
-
-        .header {
-            padding: 1rem; background: var(--card);
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 2px solid var(--primary);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            z-index: 1000;
+        /* Header stays at the top */
+        .header { 
+            padding: 10px 20px; background: var(--card); border-bottom: 2px solid var(--primary);
+            display: flex; justify-content: space-between; align-items: center; z-index: 1000;
         }
 
+        /* Map fills all available middle space */
         #map { flex-grow: 1; width: 100%; z-index: 1; }
 
-        .bottom-sheet {
-            background: var(--card);
-            padding: 1.2rem;
-            border-radius: 20px 20px 0 0;
-            box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
-            z-index: 1000;
+        /* Controls stay at the very bottom */
+        .controls-area { 
+            background: var(--card); padding: 15px; 
+            border-top: 2px solid #334155; z-index: 1000;
         }
 
-        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-
-        select, input {
-            background: #0f172a; border: 1px solid #334155;
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        
+        select, input { 
+            flex: 1; background: #0f172a; border: 1px solid #334155; 
             color: white; padding: 12px; border-radius: 8px; font-size: 14px;
-            width: 100%; box-sizing: border-box;
         }
 
-        .btn-broadcast {
-            width: 100%; padding: 15px; border: none; border-radius: 12px;
-            font-weight: 800; text-transform: uppercase; cursor: pointer;
-            transition: 0.3s; letter-spacing: 1.5px;
-            background: var(--primary); color: #000;
+        button { 
+            width: 100%; background: var(--primary); color: #000; border: none; 
+            padding: 14px; border-radius: 10px; font-weight: 800; cursor: pointer; 
         }
 
-        .btn-broadcast.active { background: var(--danger); color: white; }
+        button.active { background: #ef4444; color: white; }
 
-        .stats-overlay {
-            position: absolute; top: 85px; left: 15px; z-index: 500;
-            background: rgba(30, 41, 59, 0.95); padding: 12px;
-            border-radius: 10px; border-left: 5px solid var(--primary);
-            pointer-events: none; backdrop-filter: blur(5px);
-        }
-
-        .stat-item { font-size: 11px; margin: 4px 0; color: #94a3b8; text-transform: uppercase; }
-        .stat-value { color: var(--primary); font-weight: bold; font-size: 15px; display: block; }
-
-        .train-dot {
-            width: 16px; height: 16px; background: var(--primary);
-            border: 2px solid white; border-radius: 50%;
-            box-shadow: 0 0 15px var(--primary);
+        /* Status Overlay on Map */
+        .status-overlay {
+            position: absolute; top: 70px; left: 10px; z-index: 500;
+            background: rgba(30, 41, 59, 0.9); padding: 10px; border-radius: 8px;
+            border-left: 4px solid var(--primary); pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <header class="header">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size: 24px;">🚂</span>
-            <h1 style="font-size: 18px; margin:0; letter-spacing:1px;">BR LIVE <span style="font-weight:300; color:var(--primary)">COMMAND</span></h1>
-        </div>
-        <div id="connection-status" style="font-size: 10px; background:#064e3b; padding:4px 8px; border-radius:10px; color:var(--primary)">ONLINE</div>
-    </header>
+    <div class="header">
+        <h2 style="margin:0; font-size: 18px;">🚂 BR LIVE <span style="color:var(--primary)">PRO</span></h2>
+        <div id="live-speed" style="font-size: 14px; color:var(--primary); font-weight:bold;">0 KM/H</div>
+    </div>
 
     <div id="map"></div>
 
-    <div class="stats-overlay" id="activeStats" style="display:none;">
-        <div class="stat-item">ACTIVE TRAIN: <span class="stat-value" id="disp-name">-</span></div>
-        <div class="stat-item">LIVE SPEED: <span class="stat-value" id="disp-speed">0 KM/H</span></div>
-        <div class="stat-item">DEPARTURE: <span class="stat-value" id="disp-dep">-</span></div>
+    <div class="status-overlay" id="infoBox" style="display:none;">
+        <div style="font-size:10px; color:#94a3b8">TRACKING:</div>
+        <div id="active-train-name" style="font-size:14px; font-weight:bold;">-</div>
     </div>
 
-    <section class="bottom-sheet">
-        <div class="input-group">
+    <div class="controls-area">
+        <div class="input-row">
             <select id="trainName">
-                <option value="">-- Choose Train --</option>
+                <option value="">-- Select Train --</option>
                 <optgroup label="Dhaka - Chittagong">
-                    <option value="Subarna_Express">Subarna Express (701/702)</option>
-                    <option value="Mohanagar_Provati">Mohanagar Provati (703/704)</option>
-                    <option value="Sonar_Bangla">Sonar Bangla (787/788)</option>
-                    <option value="Turna_Express">Turna Express (741/742)</option>
-                    <option value="Chattala_Express">Chattala Express (801/802)</option>
+                    <option value="Subarna_Express">Subarna Express (701)</option>
+                    <option value="Mohanagar_Provati">Mohanagar Provati (703)</option>
+                    <option value="Turna_Express">Turna Express (741)</option>
                 </optgroup>
-                <optgroup label="Dhaka - Sylhet">
-                    <option value="Parabat_Express">Parabat Express (709/710)</option>
-                    <option value="Jayantika_Express">Jayantika Express (717/718)</option>
-                    <option value="Upaban_Express">Upaban Express (739/740)</option>
-                    <option value="Kalni_Express">Kalni Express (773/774)</option>
-                </optgroup>
-                <optgroup label="Dhaka - North Bengal">
-                    <option value="Ekota_Express">Ekota Express (705/706)</option>
-                    <option value="Drutojan_Express">Drutojan Express (757/758)</option>
-                    <option value="Panchagarh_Express">Panchagarh Express (793/794)</option>
-                    <option value="Kurigram_Express">Kurigram Express (797/798)</option>
-                    <option value="Lalmoni_Express">Lalmoni Express (751/752)</option>
-                </optgroup>
-                <optgroup label="Dhaka - West / South">
-                    <option value="Sundarban_Express">Sundarban Express (725/726)</option>
-                    <option value="Chitra_Express">Chitra Express (763/764)</option>
-                    <option value="Padma_Express">Padma Express (759/760)</option>
-                    <option value="Benapole_Express">Benapole Express (795/796)</option>
-                    <option value="Silkcity_Express">Silkcity Express (753/754)</option>
-                </optgroup>
-                <optgroup label="Special Routes">
-                    <option value="Coxs_Bazar_Express">Cox's Bazar Express (813/814)</option>
-                    <option value="Parjatak_Express">Parjatak Express (815/816)</option>
+                <optgroup label="Other Routes">
+                    <option value="Ekota_Express">Ekota Express (705)</option>
+                    <option value="Parabat_Express">Parabat Express (709)</option>
                 </optgroup>
             </select>
             <input type="time" id="depTime">
         </div>
-        <button class="btn-broadcast" id="mainBtn" onclick="toggleSystem()">Start Broadcasting</button>
-    </section>
-</div>
+        <button id="mainBtn" onclick="toggleTracking()">START BROADCASTING</button>
+    </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<script>
-    // --- FIREBASE CONFIG (HOLMES PROJECT) ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g",
-        authDomain: "holmes-train-tracker.firebaseapp.com",
-        projectId: "holmes-train-tracker",
-        storageBucket: "holmes-train-tracker.firebasestorage.app",
-        messagingSenderId: "268759875143",
-        appId: "1:268759875143:web:00031813d14107dfe03b62",
-        databaseURL: "https://holmes-train-tracker-default-rtdb.firebaseio.com/"
-    };
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g",
+            authDomain: "holmes-train-tracker.firebaseapp.com",
+            projectId: "holmes-train-tracker",
+            databaseURL: "https://holmes-train-tracker-default-rtdb.firebaseio.com/",
+            appId: "1:268759875143:web:00031813d14107dfe03b62"
+        };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const map = L.map('map', { zoomControl: false }).setView([23.8103, 90.4125], 7);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-    // --- MAP SETUP ---
-    const map = L.map('map', { zoomControl: false }).setView([23.8103, 90.4125], 7);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
-    const trainMarkers = {};
-    const trainIcon = L.divIcon({ className: 'train-dot', iconSize: [16, 16] });
-
-    // --- SMOOTHING FILTER (ENGINEERING LOGIC) ---
-    let sLat = 0, sLng = 0;
-    const alpha = 0.3; // trust factor for new data (0.3 = 30% new, 70% old)
-
-    // --- GLOBAL LISTENER ---
-    db.ref('live_trains').on('value', (snapshot) => {
-        const trains = snapshot.val();
-        const now = Date.now();
-
-        for (let key in trains) {
-            const t = trains[key];
-            if (now - t.timestamp < 900000) { // Active in last 15 mins
-                if (!trainMarkers[key]) {
-                    trainMarkers[key] = L.marker([t.lat, t.lng], {icon: trainIcon}).addTo(map)
-                        .bindPopup(`<b>${key.replace(/_/g,' ')}</b><br>Speed: ${t.speed} KM/H<br>Dep: ${t.depTime}`);
-                } else {
-                    trainMarkers[key].setLatLng([t.lat, t.lng]);
-                    trainMarkers[key].getPopup().setContent(`<b>${key.replace(/_/g,' ')}</b><br>Speed: ${t.speed} KM/H<br>Dep: ${t.depTime}`);
+        const markers = {};
+        db.ref('live_trains').on('value', snap => {
+            const trains = snap.val();
+            for (let id in trains) {
+                const t = trains[id];
+                if (Date.now() - t.timestamp < 600000) {
+                    if (!markers[id]) markers[id] = L.marker([t.lat, t.lng]).addTo(map);
+                    markers[id].setLatLng([t.lat, t.lng]).bindPopup(`<b>${id}</b><br>${t.speed} km/h`);
                 }
-            } else if(trainMarkers[key]) {
-                map.removeLayer(trainMarkers[key]);
-                delete trainMarkers[key];
             }
-        }
-    });
+        });
 
-    // --- BROADCASTER LOGIC ---
-    let watchID = null;
+        let watchID = null;
+        function toggleTracking() {
+            const name = document.getElementById('trainName').value;
+            const time = document.getElementById('depTime').value;
+            const btn = document.getElementById('mainBtn');
 
-    function toggleSystem() {
-        const name = document.getElementById('trainName').value;
-        const time = document.getElementById('depTime').value;
-        const btn = document.getElementById('mainBtn');
-        const overlay = document.getElementById('activeStats');
-
-        if (!name || !time) return alert("Select Train and Time first!");
-
-        if (watchID === null) {
-            if ("geolocation" in navigator) {
-                overlay.style.display = 'block';
-                document.getElementById('disp-name').innerText = name.replace(/_/g,' ');
-                document.getElementById('disp-dep').innerText = time;
-
-                watchID = navigator.geolocation.watchPosition((pos) => {
-                    const rawLat = pos.coords.latitude;
-                    const rawLng = pos.coords.longitude;
-                    
-                    // Apply Low-Pass Filter for Smooth Motion
-                    if (sLat === 0) { sLat = rawLat; sLng = rawLng; }
-                    sLat = (rawLat * alpha) + (sLat * (1 - alpha));
-                    sLng = (rawLng * alpha) + (sLng * (1 - alpha));
-
+            if (!watchID) {
+                if (!name || !time) return alert("Select Train & Time!");
+                document.getElementById('infoBox').style.display = 'block';
+                document.getElementById('active-train-name').innerText = name.replace('_', ' ');
+                
+                watchID = navigator.geolocation.watchPosition(pos => {
                     const speed = Math.round((pos.coords.speed || 0) * 3.6);
-                    
                     db.ref('live_trains/' + name).set({
-                        lat: sLat, lng: sLng,
-                        speed: speed, depTime: time,
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        speed: speed,
+                        depTime: time,
                         timestamp: Date.now()
                     });
+                    document.getElementById('live-speed').innerText = speed + " KM/H";
+                    map.panTo([pos.coords.latitude, pos.coords.longitude]);
+                }, null, { enableHighAccuracy: true });
 
-                    document.getElementById('disp-speed').innerText = speed + " KM/H";
-                    map.panTo([sLat, sLng]);
-
-                }, (err) => console.error(err), { enableHighAccuracy: true, maximumAge: 0 });
-
-                btn.innerText = "Broadcasting Live...";
+                btn.innerText = "STOP BROADCASTING";
                 btn.classList.add('active');
+            } else {
+                navigator.geolocation.clearWatch(watchID);
+                watchID = null;
+                btn.innerText = "START BROADCASTING";
+                btn.classList.remove('active');
+                document.getElementById('infoBox').style.display = 'none';
             }
-        } else {
-            navigator.geolocation.clearWatch(watchID);
-            watchID = null;
-            sLat = 0; sLng = 0;
-            btn.innerText = "Start Broadcasting";
-            btn.classList.remove('active');
-            overlay.style.display = 'none';
         }
-    }
-</script>
+    </script>
 </body>
 </html>
