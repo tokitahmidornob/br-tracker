@@ -3,65 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BR Live Pro | Final Telemetry</title>
+    <title>BR Live Pro | National Command Center</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    
     <style>
-        :root { --primary: #00ff88; --bg: #020617; --card: #1e293b; --text: #f8fafc; --danger: #ef4444; }
+        :root { --primary: #00ff88; --bg: #020617; --card: #1e293b; --text: #f8fafc; --danger: #ef4444; --accent: #3b82f6; }
         body, html { margin: 0; padding: 0; height: 100vh; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+        
+        /* --- GATING --- */
         #gate-screen { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .gate-card { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; border: 1px solid #334155; }
-        .btn-main { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .btn-track { background: var(--primary); color: #000; }
+        .gate-card { background: var(--card); padding: 30px; border-radius: 24px; width: 100%; max-width: 420px; text-align: center; border: 1px solid #334155; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .gate-input { width: 100%; padding: 14px; margin: 20px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 12px; }
+        
+        /* --- MAIN LAYOUT --- */
         #app-shell { display: none; flex-direction: column; height: 100vh; }
-        .header { padding: 10px 20px; background: var(--card); border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .header { padding: 12px 20px; background: var(--card); border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
         #map { flex: 2; width: 100%; }
-        #telemetry { flex: 1; background: #0a0f1e; padding: 10px; border-top: 1px solid #334155; }
-        #speedChart { max-height: 120px; width: 100% !important; }
-        .panel { background: var(--card); padding: 15px; border-top: 2px solid var(--primary); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        select, input { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; width: 100%; font-size: 13px; }
+        
+        /* --- PROGRESS BAR --- */
+        .progress-container { background: #0f172a; padding: 10px 20px; border-top: 1px solid #334155; }
+        .progress-track { height: 6px; background: #334155; border-radius: 3px; position: relative; margin: 15px 0; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; border-radius: 3px; transition: 1s; }
+        .progress-labels { display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+
+        /* --- TELEMETRY & CONTROLS --- */
+        #telemetry-panel { flex: 1; background: #0a0f1e; display: flex; flex-direction: column; overflow-y: auto; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: #334155; border-top: 1px solid #334155; }
+        .stat-box { background: #0a0f1e; padding: 15px; text-align: center; }
+        .stat-label { font-size: 10px; color: #94a3b8; display: block; margin-bottom: 5px; }
+        .stat-val { font-size: 18px; font-weight: 800; color: var(--primary); }
+
+        .control-tabs { background: var(--card); padding: 15px; border-top: 2px solid var(--primary); }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        select, input { background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; font-size: 13px; }
+        
+        .report-btn-group { display: flex; gap: 5px; margin-top: 10px; }
+        .report-btn { flex: 1; padding: 8px; font-size: 10px; border-radius: 5px; border: 1px solid #334155; background: #1e293b; color: white; cursor: pointer; }
+
+        .btn-action { width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; background: var(--primary); color: #000; font-size: 14px; letter-spacing: 1px; }
+        .btn-action.active { background: var(--danger); color: white; }
     </style>
 </head>
 <body>
 
     <div id="gate-screen">
         <div class="gate-card">
-            <h1 style="color:var(--primary); margin:0;">🚂 BR LIVE <span style="font-weight:100">PRO</span></h1>
-            <input type="text" id="pName" style="width:100%; padding:10px; margin:20px 0; border-radius:8px; border:none;" placeholder="Enter Name">
-            <button class="btn-main btn-track" onclick="nav('broadcast')">START COMMAND CENTER</button>
+            <h1 style="color:var(--primary); margin:0; letter-spacing:2px;">BR LIVE <span style="font-weight:200">PRO</span></h1>
+            <p style="color:#94a3b8; font-size:12px;">NATIONAL RAILWAY TELEMETRY SYSTEM</p>
+            <input type="text" id="pName" class="gate-input" placeholder="Enter Your Full Name">
+            <button class="btn-action" onclick="initApp()">ENTER COMMAND CENTER</button>
         </div>
     </div>
 
     <div id="app-shell">
         <header class="header">
-            <h2 style="margin:0; font-size: 14px;">COMMAND CENTER</h2>
-            <div id="live-kmh" style="font-weight:bold; color:var(--primary); font-size: 22px;">0 KM/H</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-satellite-dish" style="color:var(--primary)"></i>
+                <span id="current-train-header" style="font-weight:bold; font-size:14px;">NO TRAIN SELECTED</span>
+            </div>
+            <div id="live-clock" style="font-family:monospace; color:#94a3b8;">00:00:00</div>
         </header>
 
         <div id="map"></div>
-        <div id="telemetry"><canvas id="speedChart"></canvas></div>
 
-        <div class="panel">
-            <div class="grid">
-                <select id="tSelect">
-                    <option value="Upukol_Express_711">711 Upukol Express (Noakhali to Dhaka) </option>
-                    <option value="Subarna_Express_701">701 Subarna Express (Chittagong to Dhaka) </option>
-                    <option value="Mohanagar_Provati_704">704 Mohanagar Provati (Dhaka to Chittagong) </option>
-                    <option value="Ekota_Express_705">705 Ekota Express (Dhaka to Dinajpur) </option>
-                    <option value="Sundarban_Express_725">725 Sundarban Express (Khulna to Dhaka) [cite: 3]</option>
-                    <option value="Dhaka_Mail_1">01 Dhaka Mail (Chittagong to Dhaka) [cite: 5]</option>
-                </select>
-                <select id="tStatus">
-                    <option value="On Time">On Time</option>
-                    <option value="Delayed">Delayed</option>
-                </select>
+        <div class="progress-container">
+            <div class="progress-labels"><span id="start-stn">SOURCE</span><span id="dist-remain">-- KM REMAINING</span><span id="end-stn">DESTINATION</span></div>
+            <div class="progress-track"><div id="pFill" class="progress-fill"></div></div>
+        </div>
+
+        <div id="telemetry-panel">
+            <div class="stats-grid">
+                <div class="stat-box"><span class="stat-label">VELOCITY</span><span class="stat-val" id="v-val">0</span><small> KM/H</small></div>
+                <div class="stat-box"><span class="stat-label">STATUS</span><span class="stat-val" id="s-val" style="font-size:14px;">READY</span></div>
+                <div class="stat-box"><span class="stat-label">DELAY</span><span class="stat-val" id="d-val">0</span><small> MIN</small></div>
             </div>
-            <div class="grid">
-                <input type="text" id="tStation" placeholder="Delayed from Station?">
-                <input type="number" id="tDelay" placeholder="Mins Late">
+            <div style="flex:1; padding:10px;"><canvas id="teleChart"></canvas></div>
+        </div>
+
+        <div class="control-tabs">
+            <div class="input-row">
+                <select id="tSelect" onchange="updateTrainProfile()">
+                    <option value="">-- SELECT TRAIN --</option>
+                    <optgroup label="Intercity - Meter Gauge">
+                        <option value="711_Upakul_Express" data-from="Noakhali" data-to="Dhaka" data-off="Tuesday">711 Upakul Express (06:00)</option>
+                        <option value="701_Subarna_Express" data-from="Chittagong" data-to="Dhaka" data-off="Monday">701 Subarna Express (07:00)</option>
+                        <option value="741_Turna_Express" data-from="Chittagong" data-to="Dhaka" data-off="No">741 Turna Express (23:00)</option>
+                        <option value="787_Sonar_Bangla" data-from="Chittagong" data-to="Dhaka" data-off="Wednesday">787 Sonar Bangla (17:00)</option>
+                    </optgroup>
+                    <optgroup label="Intercity - Broad Gauge">
+                        <option value="725_Sundarban_Express" data-from="Khulna" data-to="Dhaka" data-off="Tuesday">725 Sundarban Express (21:45)</option>
+                        <option value="763_Chitra_Express" data-from="Khulna" data-to="Dhaka" data-off="Monday">763 Chitra Express (09:00)</option>
+                        <option value="759_Padma_Express" data-from="Rajshahi" data-to="Dhaka" data-off="Tuesday">759 Padma Express (16:00)</option>
+                    </optgroup>
+                </select>
+                <select id="tStatus"><option value="On Time">On Time</option><option value="Delayed">Delayed</option></select>
             </div>
-            <button id="mBtn" onclick="run()" style="width:100%; padding:14px; background:var(--primary); color:#000; font-weight:bold; border:none; border-radius:10px;">START TELEMETRY</button>
+            <div class="input-row"><input type="text" id="tStation" placeholder="Delayed from?"><input type="number" id="tDelay" placeholder="Mins"></div>
+            <button id="mBtn" class="btn-action" onclick="toggleTelemetry()">START LIVE BROADCAST</button>
+            
+            <div class="report-btn-group">
+                <button class="report-btn" onclick="report('Food Available')"><i class="fas fa-utensils"></i> FOOD</button>
+                <button class="report-btn" onclick="report('Crowded')"><i class="fas fa-users"></i> CROWD</button>
+                <button class="report-btn" onclick="report('Clean')"><i class="fas fa-broom"></i> CLEAN</button>
+            </div>
         </div>
     </div>
 
@@ -79,67 +126,106 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        let uName = "";
 
-        const speedChart = new Chart(document.getElementById('speedChart'), {
+        // --- CHART ENGINE ---
+        const teleChart = new Chart(document.getElementById('teleChart'), {
             type: 'line',
-            data: { labels: Array(20).fill(''), datasets: [{ data: Array(20).fill(0), borderColor: '#00ff88', tension: 0.4, fill: true, backgroundColor: 'rgba(0, 255, 136, 0.1)' }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { display: false } }, plugins: { legend: { display: false } } }
+            data: { labels: Array(30).fill(''), datasets: [{ label: 'KM/H', data: Array(30).fill(0), borderColor: '#00ff88', tension: 0.4, fill: true, backgroundColor: 'rgba(0, 255, 136, 0.1)' }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#1e293b' } }, x: { display: false } }, plugins: { legend: { display: false } } }
         });
 
-        function nav() {
-            if(!document.getElementById('pName').value) return alert("Identify yourself!");
+        // --- APP FLOW ---
+        function initApp() {
+            uName = document.getElementById('pName').value;
+            if(!uName) return alert("Identify yourself, Sherlock.");
             document.getElementById('gate-screen').style.display = 'none';
             document.getElementById('app-shell').style.display = 'flex';
-            loadMap();
+            startTime();
+            initMap();
+        }
+
+        function startTime() {
+            setInterval(() => {
+                document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('en-GB');
+            }, 1000);
         }
 
         let map, markers = {};
-        function loadMap() {
+        function initMap() {
             map = L.map('map', {zoomControl: false}).setView([23.8103, 90.4125], 7);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+            
             db.ref('active_probes').on('value', snap => {
                 const data = snap.val() || {};
                 for(let k in markers) map.removeLayer(markers[k]);
                 for(let k in data) {
                     const p = data[k];
-                    markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p.train}</b><br>Tracker: ${p.name}<br>Speed: ${p.speed} KM/H`);
+                    if(Date.now() - p.ts < 600000) {
+                        markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
+                            <b style="color:#00ff88">${p.train.replace(/_/g,' ')}</b><br>
+                            Tracker: ${p.name}<br>
+                            Status: ${p.status}<br>
+                            Report: ${p.report || 'N/A'}
+                        `);
+                    }
                 }
             });
         }
 
+        function updateTrainProfile() {
+            const sel = document.getElementById('tSelect');
+            const opt = sel.options[sel.selectedIndex];
+            document.getElementById('current-train-header').innerText = opt.text;
+            document.getElementById('start-stn').innerText = opt.dataset.from;
+            document.getElementById('end-stn').innerText = opt.dataset.to;
+            
+            // Off-day Logic
+            const today = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+            if(opt.dataset.off === today) {
+                alert(`WARNING: Today is the scheduled OFF-DAY for ${opt.text}.`);
+            }
+        }
+
         let wID = null;
-        function run() {
+        function toggleTelemetry() {
             const btn = document.getElementById('mBtn');
+            const train = document.getElementById('tSelect').value;
+            if(!train) return alert("Select Train!");
+
             if(!wID) {
-                // SENSOR CALIBRATION: Requesting the highest possible GPS frequency
                 wID = navigator.geolocation.watchPosition(pos => {
-                    // UNIT CALCULATION: m/s to km/h conversion
-                    let speed = pos.coords.speed;
-                    if (speed === null || speed < 0) speed = 0; 
-                    const kmh = Math.round(speed * 3.6);
+                    const speed = Math.round((pos.coords.speed || 0) * 3.6);
+                    document.getElementById('v-val').innerText = speed;
+                    document.getElementById('s-val').innerText = document.getElementById('tStatus').value;
+                    document.getElementById('d-val').innerText = document.getElementById('tDelay').value || "0";
 
-                    document.getElementById('live-kmh').innerText = kmh + " KM/H";
-                    speedChart.data.datasets[0].data.push(kmh);
-                    speedChart.data.datasets[0].data.shift();
-                    speedChart.update('none');
+                    // Update Chart
+                    teleChart.data.datasets[0].data.push(speed);
+                    teleChart.data.datasets[0].data.shift();
+                    teleChart.update('none');
 
-                    db.ref('active_probes/' + document.getElementById('pName').value).set({
-                        name: document.getElementById('pName').value,
-                        train: document.getElementById('tSelect').value,
-                        status: document.getElementById('tStatus').value,
-                        station: document.getElementById('tStation').value || "N/A",
-                        delay: document.getElementById('tDelay').value || "0",
-                        lat: pos.coords.latitude, lng: pos.coords.longitude,
-                        speed: kmh, ts: Date.now()
+                    db.ref('active_probes/' + uName).update({
+                        name: uName, train, lat: pos.coords.latitude, lng: pos.coords.longitude,
+                        speed, status: document.getElementById('tStatus').value, 
+                        delay: document.getElementById('tDelay').value || 0,
+                        station: document.getElementById('tStation').value || 'N/A',
+                        ts: Date.now()
                     });
-                    btn.innerText = "STOP TRANSMISSION"; btn.style.background = "#ef4444";
-                }, (err) => alert("GPS Error: " + err.message), 
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+                    
+                    btn.innerText = "STOP TELEMETRY"; btn.classList.add('active');
+                }, null, {enableHighAccuracy: true});
             } else {
                 navigator.geolocation.clearWatch(wID); wID = null;
-                db.ref('active_probes/' + document.getElementById('pName').value).remove();
-                btn.innerText = "START TELEMETRY"; btn.style.background = "#00ff88";
+                db.ref('active_probes/' + uName).remove();
+                btn.innerText = "START LIVE BROADCAST"; btn.classList.remove('active');
             }
+        }
+
+        function report(type) {
+            if(!wID) return alert("Start Telemetry first to report status.");
+            db.ref('active_probes/' + uName).update({ report: type });
+            alert("Status Reported: " + type);
         }
     </script>
 </body>
