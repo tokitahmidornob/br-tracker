@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BR Live | Real-Time Railway Tracking</title>
+    <title>BR Live Pro | Real-Time Railway Tracking</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/button/all.min.css" />
     
     <style>
         :root {
@@ -25,7 +24,6 @@
             overflow: hidden;
         }
 
-        /* --- UI Layout --- */
         .app-container { display: flex; flex-direction: column; height: 100vh; }
 
         .header {
@@ -38,10 +36,9 @@
 
         #map { flex-grow: 1; width: 100%; z-index: 1; }
 
-        /* --- Control Panel --- */
         .bottom-sheet {
             background: var(--card);
-            padding: 1.5rem;
+            padding: 1.2rem;
             border-radius: 20px 20px 0 0;
             box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
             z-index: 1000;
@@ -52,31 +49,30 @@
         select, input {
             background: #0f172a; border: 1px solid #334155;
             color: white; padding: 12px; border-radius: 8px; font-size: 14px;
+            width: 100%; box-sizing: border-box;
         }
 
         .btn-broadcast {
             width: 100%; padding: 15px; border: none; border-radius: 12px;
             font-weight: 800; text-transform: uppercase; cursor: pointer;
-            transition: 0.3s; letter-spacing: 1px;
+            transition: 0.3s; letter-spacing: 1.5px;
             background: var(--primary); color: #000;
         }
 
         .btn-broadcast.active { background: var(--danger); color: white; }
 
-        /* --- Stats Overlay --- */
         .stats-overlay {
-            position: absolute; top: 80px; left: 10px; z-index: 500;
-            background: rgba(30, 41, 59, 0.9); padding: 10px;
-            border-radius: 8px; border-left: 4px solid var(--primary);
-            pointer-events: none;
+            position: absolute; top: 85px; left: 15px; z-index: 500;
+            background: rgba(30, 41, 59, 0.95); padding: 12px;
+            border-radius: 10px; border-left: 5px solid var(--primary);
+            pointer-events: none; backdrop-filter: blur(5px);
         }
 
-        .stat-item { font-size: 12px; margin: 5px 0; color: #94a3b8; }
-        .stat-value { color: var(--primary); font-weight: bold; font-size: 14px; }
+        .stat-item { font-size: 11px; margin: 4px 0; color: #94a3b8; text-transform: uppercase; }
+        .stat-value { color: var(--primary); font-weight: bold; font-size: 15px; display: block; }
 
-        /* Custom Marker */
         .train-dot {
-            width: 14px; height: 14px; background: var(--primary);
+            width: 16px; height: 16px; background: var(--primary);
             border: 2px solid white; border-radius: 50%;
             box-shadow: 0 0 15px var(--primary);
         }
@@ -88,7 +84,7 @@
     <header class="header">
         <div style="display:flex; align-items:center; gap:10px;">
             <span style="font-size: 24px;">🚂</span>
-            <h1 style="font-size: 18px; margin:0; letter-spacing:1px;">BR LIVE <span style="font-weight:300; color:var(--primary)">PRO</span></h1>
+            <h1 style="font-size: 18px; margin:0; letter-spacing:1px;">BR LIVE <span style="font-weight:300; color:var(--primary)">COMMAND</span></h1>
         </div>
         <div id="connection-status" style="font-size: 10px; background:#064e3b; padding:4px 8px; border-radius:10px; color:var(--primary)">ONLINE</div>
     </header>
@@ -98,26 +94,43 @@
     <div class="stats-overlay" id="activeStats" style="display:none;">
         <div class="stat-item">ACTIVE TRAIN: <span class="stat-value" id="disp-name">-</span></div>
         <div class="stat-item">LIVE SPEED: <span class="stat-value" id="disp-speed">0 KM/H</span></div>
-        <div class="stat-item">DEP. TIME: <span class="stat-value" id="disp-dep">-</span></div>
+        <div class="stat-item">DEPARTURE: <span class="stat-value" id="disp-dep">-</span></div>
     </div>
 
     <section class="bottom-sheet">
         <div class="input-group">
             <select id="trainName">
                 <option value="">-- Choose Train --</option>
-                <optgroup label="Chittagong Route">
-                    <option value="Subarna_Express">Subarna Express (701)</option>
-                    <option value="Mohanagar_Provati">Mohanagar Provati (703)</option>
-                    <option value="Turna_Express">Turna Express (741)</option>
-                    <option value="Sonar_Bangla">Sonar Bangla (787)</option>
+                <optgroup label="Dhaka - Chittagong">
+                    <option value="Subarna_Express">Subarna Express (701/702)</option>
+                    <option value="Mohanagar_Provati">Mohanagar Provati (703/704)</option>
+                    <option value="Sonar_Bangla">Sonar Bangla (787/788)</option>
+                    <option value="Turna_Express">Turna Express (741/742)</option>
+                    <option value="Chattala_Express">Chattala Express (801/802)</option>
                 </optgroup>
-                <optgroup label="Sylhet Route">
-                    <option value="Parabat_Express">Parabat Express (709)</option>
-                    <option value="Upakul_Express">Upakul Express (711)</option>
+                <optgroup label="Dhaka - Sylhet">
+                    <option value="Parabat_Express">Parabat Express (709/710)</option>
+                    <option value="Jayantika_Express">Jayantika Express (717/718)</option>
+                    <option value="Upaban_Express">Upaban Express (739/740)</option>
+                    <option value="Kalni_Express">Kalni Express (773/774)</option>
                 </optgroup>
-                <optgroup label="North Bengal">
-                    <option value="Ekota_Express">Ekota Express (705)</option>
-                    <option value="Lalmoni_Express">Lalmoni Express (751)</option>
+                <optgroup label="Dhaka - North Bengal">
+                    <option value="Ekota_Express">Ekota Express (705/706)</option>
+                    <option value="Drutojan_Express">Drutojan Express (757/758)</option>
+                    <option value="Panchagarh_Express">Panchagarh Express (793/794)</option>
+                    <option value="Kurigram_Express">Kurigram Express (797/798)</option>
+                    <option value="Lalmoni_Express">Lalmoni Express (751/752)</option>
+                </optgroup>
+                <optgroup label="Dhaka - West / South">
+                    <option value="Sundarban_Express">Sundarban Express (725/726)</option>
+                    <option value="Chitra_Express">Chitra Express (763/764)</option>
+                    <option value="Padma_Express">Padma Express (759/760)</option>
+                    <option value="Benapole_Express">Benapole Express (795/796)</option>
+                    <option value="Silkcity_Express">Silkcity Express (753/754)</option>
+                </optgroup>
+                <optgroup label="Special Routes">
+                    <option value="Coxs_Bazar_Express">Cox's Bazar Express (813/814)</option>
+                    <option value="Parjatak_Express">Parjatak Express (815/816)</option>
                 </optgroup>
             </select>
             <input type="time" id="depTime">
@@ -131,7 +144,7 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-    // --- FIREBASE CONFIG (STRICTLY FOR HOLMES PROJECT) ---
+    // --- FIREBASE CONFIG (HOLMES PROJECT) ---
     const firebaseConfig = {
         apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g",
         authDomain: "holmes-train-tracker.firebaseapp.com",
@@ -150,36 +163,35 @@
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
     const trainMarkers = {};
-    const trainIcon = L.divIcon({ className: 'train-dot', iconSize: [14, 14] });
+    const trainIcon = L.divIcon({ className: 'train-dot', iconSize: [16, 16] });
 
-    // --- REAL-TIME LISTENER (FOR ALL USERS) ---
+    // --- SMOOTHING FILTER (ENGINEERING LOGIC) ---
+    let sLat = 0, sLng = 0;
+    const alpha = 0.3; // trust factor for new data (0.3 = 30% new, 70% old)
+
+    // --- GLOBAL LISTENER ---
     db.ref('live_trains').on('value', (snapshot) => {
         const trains = snapshot.val();
         const now = Date.now();
 
         for (let key in trains) {
             const t = trains[key];
-            
-            // Filter: Only show trains active in the last 15 minutes
-            if (now - t.timestamp < 900000) {
+            if (now - t.timestamp < 900000) { // Active in last 15 mins
                 if (!trainMarkers[key]) {
                     trainMarkers[key] = L.marker([t.lat, t.lng], {icon: trainIcon}).addTo(map)
-                        .bindPopup(`<b>${key.replace('_',' ')}</b><br>Speed: ${t.speed} km/h<br>Dep: ${t.depTime}`);
+                        .bindPopup(`<b>${key.replace(/_/g,' ')}</b><br>Speed: ${t.speed} KM/H<br>Dep: ${t.depTime}`);
                 } else {
                     trainMarkers[key].setLatLng([t.lat, t.lng]);
-                    trainMarkers[key].getPopup().setContent(`<b>${key.replace('_',' ')}</b><br>Speed: ${t.speed} km/h<br>Dep: ${t.depTime}`);
+                    trainMarkers[key].getPopup().setContent(`<b>${key.replace(/_/g,' ')}</b><br>Speed: ${t.speed} KM/H<br>Dep: ${t.depTime}`);
                 }
-            } else {
-                // Remove stale markers
-                if(trainMarkers[key]) {
-                    map.removeLayer(trainMarkers[key]);
-                    delete trainMarkers[key];
-                }
+            } else if(trainMarkers[key]) {
+                map.removeLayer(trainMarkers[key]);
+                delete trainMarkers[key];
             }
         }
     });
 
-    // --- BROADCASTER LOGIC (FOR THE PASSENGER) ---
+    // --- BROADCASTER LOGIC ---
     let watchID = null;
 
     function toggleSystem() {
@@ -188,44 +200,43 @@
         const btn = document.getElementById('mainBtn');
         const overlay = document.getElementById('activeStats');
 
-        if (!name || !time) {
-            alert("Detective, please select the Train Name and Departure Time first!");
-            return;
-        }
+        if (!name || !time) return alert("Select Train and Time first!");
 
         if (watchID === null) {
-            // START
             if ("geolocation" in navigator) {
                 overlay.style.display = 'block';
-                document.getElementById('disp-name').innerText = name.replace('_',' ');
+                document.getElementById('disp-name').innerText = name.replace(/_/g,' ');
                 document.getElementById('disp-dep').innerText = time;
 
                 watchID = navigator.geolocation.watchPosition((pos) => {
-                    const speed = Math.round((pos.coords.speed || 0) * 3.6);
-                    const data = {
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                        speed: speed,
-                        depTime: time,
-                        timestamp: Date.now()
-                    };
-
-                    db.ref('live_trains/' + name).set(data);
-                    document.getElementById('disp-speed').innerText = speed + " KM/H";
+                    const rawLat = pos.coords.latitude;
+                    const rawLng = pos.coords.longitude;
                     
-                    // Smoothly center map on user
-                    map.panTo([pos.coords.latitude, pos.coords.longitude]);
+                    // Apply Low-Pass Filter for Smooth Motion
+                    if (sLat === 0) { sLat = rawLat; sLng = rawLng; }
+                    sLat = (rawLat * alpha) + (sLat * (1 - alpha));
+                    sLng = (rawLng * alpha) + (sLng * (1 - alpha));
 
-                }, (err) => alert("GPS Error: " + err.message), 
-                { enableHighAccuracy: true, maximumAge: 0 });
+                    const speed = Math.round((pos.coords.speed || 0) * 3.6);
+                    
+                    db.ref('live_trains/' + name).set({
+                        lat: sLat, lng: sLng,
+                        speed: speed, depTime: time,
+                        timestamp: Date.now()
+                    });
 
-                btn.innerText = "Stop Broadcasting";
+                    document.getElementById('disp-speed').innerText = speed + " KM/H";
+                    map.panTo([sLat, sLng]);
+
+                }, (err) => console.error(err), { enableHighAccuracy: true, maximumAge: 0 });
+
+                btn.innerText = "Broadcasting Live...";
                 btn.classList.add('active');
             }
         } else {
-            // STOP
             navigator.geolocation.clearWatch(watchID);
             watchID = null;
+            sLat = 0; sLng = 0;
             btn.innerText = "Start Broadcasting";
             btn.classList.remove('active');
             overlay.style.display = 'none';
