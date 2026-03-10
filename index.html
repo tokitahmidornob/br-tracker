@@ -3,87 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BR Live Pro | Command Center</title>
-    
+    <title>BR Live Pro | Telemetry Command</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #00ff88; --bg: #020617; --card: #1e293b; --text: #f8fafc; }
+        :root { --primary: #00ff88; --bg: #020617; --card: #1e293b; --text: #f8fafc; --danger: #ef4444; }
+        body, html { margin: 0; padding: 0; height: 100vh; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
         
-        /* Force the body to take full screen without scrolling */
-        body, html { 
-            margin: 0; padding: 0; height: 100vh; width: 100vw;
-            font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text);
-            display: flex; flex-direction: column; overflow: hidden;
-        }
+        #gate-screen { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .gate-card { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; border: 1px solid #334155; }
+        .gate-input { width: 100%; padding: 12px; margin-bottom: 20px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 8px; box-sizing: border-box; }
+        .btn-main { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .btn-track { background: var(--primary); color: #000; }
+        .btn-broadcast { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
 
-        /* Header stays at the top */
-        .header { 
-            padding: 10px 20px; background: var(--card); border-bottom: 2px solid var(--primary);
-            display: flex; justify-content: space-between; align-items: center; z-index: 1000;
-        }
-
-        /* Map fills all available middle space */
-        #map { flex-grow: 1; width: 100%; z-index: 1; }
-
-        /* Controls stay at the very bottom */
-        .controls-area { 
-            background: var(--card); padding: 15px; 
-            border-top: 2px solid #334155; z-index: 1000;
-        }
-
-        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        #app-shell { display: none; flex-direction: column; height: 100vh; }
+        .header { padding: 10px 20px; background: var(--card); border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        #map { flex: 2; width: 100%; }
         
-        select, input { 
-            flex: 1; background: #0f172a; border: 1px solid #334155; 
-            color: white; padding: 12px; border-radius: 8px; font-size: 14px;
-        }
+        /* --- TELEMETRY GRAPH SECTION --- */
+        #telemetry { flex: 1; background: #0a0f1e; padding: 10px; border-top: 1px solid #334155; display: flex; flex-direction: column; }
+        #speedChart { max-height: 150px; width: 100% !important; }
 
-        button { 
-            width: 100%; background: var(--primary); color: #000; border: none; 
-            padding: 14px; border-radius: 10px; font-weight: 800; cursor: pointer; 
-        }
-
-        button.active { background: #ef4444; color: white; }
-
-        /* Status Overlay on Map */
-        .status-overlay {
-            position: absolute; top: 70px; left: 10px; z-index: 500;
-            background: rgba(30, 41, 59, 0.9); padding: 10px; border-radius: 8px;
-            border-left: 4px solid var(--primary); pointer-events: none;
-        }
+        .panel { background: var(--card); padding: 10px; border-top: 2px solid var(--primary); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        select, input { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h2 style="margin:0; font-size: 18px;">🚂 BR LIVE <span style="color:var(--primary)">PRO</span></h2>
-        <div id="live-speed" style="font-size: 14px; color:var(--primary); font-weight:bold;">0 KM/H</div>
-    </div>
-
-    <div id="map"></div>
-
-    <div class="status-overlay" id="infoBox" style="display:none;">
-        <div style="font-size:10px; color:#94a3b8">TRACKING:</div>
-        <div id="active-train-name" style="font-size:14px; font-weight:bold;">-</div>
-    </div>
-
-    <div class="controls-area">
-        <div class="input-row">
-            <select id="trainName">
-                <option value="">-- Select Train --</option>
-                <optgroup label="Dhaka - Chittagong">
-                    <option value="Subarna_Express">Subarna Express (701)</option>
-                    <option value="Mohanagar_Provati">Mohanagar Provati (703)</option>
-                    <option value="Turna_Express">Turna Express (741)</option>
-                </optgroup>
-                <optgroup label="Other Routes">
-                    <option value="Ekota_Express">Ekota Express (705)</option>
-                    <option value="Parabat_Express">Parabat Express (709)</option>
-                </optgroup>
-            </select>
-            <input type="time" id="depTime">
+    <div id="gate-screen">
+        <div class="gate-card">
+            <h1 style="color:var(--primary); margin:0;">🚂 BR LIVE <span style="font-weight:100">TELEMETRY</span></h1>
+            <input type="text" id="pName" class="gate-input" placeholder="Enter Your Name">
+            <button class="btn-main btn-track" onclick="nav('track')">DETECTOR MODE</button>
+            <button class="btn-main btn-broadcast" onclick="nav('broadcast')">LOCO-TELEMETRY MODE</button>
         </div>
-        <button id="mainBtn" onclick="toggleTracking()">START BROADCASTING</button>
+    </div>
+
+    <div id="app-shell">
+        <header class="header">
+            <h2 style="margin:0; font-size: 14px;">COMMAND CENTER</h2>
+            <div id="live-kmh" style="font-weight:bold; color:var(--primary); font-size: 18px;">0 KM/H</div>
+        </header>
+
+        <div id="map"></div>
+
+        <div id="telemetry">
+            <div style="font-size: 10px; color: #94a3b8; margin-bottom: 5px; text-transform: uppercase;">Real-Time Velocity Graph (KM/H)</div>
+            <canvas id="speedChart"></canvas>
+        </div>
+
+        <div class="panel" id="bPanel" style="display:none;">
+            <div class="grid">
+                <select id="tSelect">
+                    <option value="Upakul_Express">Upakul Express (711/712)</option>
+                    <option value="Subarna_Express">Subarna Express (701)</option>
+                    <option value="Sonar_Bangla">Sonar Bangla (787)</option>
+                </select>
+                <input type="time" id="tDep">
+            </div>
+            <button id="mBtn" onclick="run()" style="width:100%; padding:12px; background:var(--primary); color:#000; font-weight:bold; border:none; border-radius:8px;">START TELEMETRY</button>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -98,56 +79,65 @@
             databaseURL: "https://holmes-train-tracker-default-rtdb.firebaseio.com/",
             appId: "1:268759875143:web:00031813d14107dfe03b62"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const map = L.map('map', { zoomControl: false }).setView([23.8103, 90.4125], 7);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        let user = "";
 
-        const markers = {};
-        db.ref('live_trains').on('value', snap => {
-            const trains = snap.val();
-            for (let id in trains) {
-                const t = trains[id];
-                if (Date.now() - t.timestamp < 600000) {
-                    if (!markers[id]) markers[id] = L.marker([t.lat, t.lng]).addTo(map);
-                    markers[id].setLatLng([t.lat, t.lng]).bindPopup(`<b>${id}</b><br>${t.speed} km/h`);
-                }
-            }
+        // --- CHART INITIALIZATION ---
+        const ctx = document.getElementById('speedChart').getContext('2d');
+        const speedChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: Array(20).fill(''), datasets: [{ label: 'KM/H', data: Array(20).fill(0), borderColor: '#00ff88', tension: 0.4, fill: true, backgroundColor: 'rgba(0, 255, 136, 0.1)' }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#334155' } }, x: { display: false } }, plugins: { legend: { display: false } } }
         });
 
-        let watchID = null;
-        function toggleTracking() {
-            const name = document.getElementById('trainName').value;
-            const time = document.getElementById('depTime').value;
-            const btn = document.getElementById('mainBtn');
+        function nav(m) {
+            user = document.getElementById('pName').value;
+            if(!user) return alert("Identify yourself!");
+            document.getElementById('gate-screen').style.display = 'none';
+            document.getElementById('app-shell').style.display = 'flex';
+            if(m === 'broadcast') document.getElementById('bPanel').style.display = 'block';
+            loadMap();
+        }
 
-            if (!watchID) {
-                if (!name || !time) return alert("Select Train & Time!");
-                document.getElementById('infoBox').style.display = 'block';
-                document.getElementById('active-train-name').innerText = name.replace('_', ' ');
-                
-                watchID = navigator.geolocation.watchPosition(pos => {
+        let map, markers = {};
+        function loadMap() {
+            map = L.map('map', {zoomControl: false}).setView([23.8103, 90.4125], 7);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+            db.ref('active_probes').on('value', snap => {
+                const data = snap.val() || {};
+                for(let k in markers) map.removeLayer(markers[k]);
+                for(let k in data) {
+                    const p = data[k];
+                    markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p.train}</b><br>Tracker: ${p.name}<br>Speed: ${p.speed} KM/H`);
+                }
+            });
+        }
+
+        let wID = null;
+        function run() {
+            const btn = document.getElementById('mBtn');
+            if(!wID) {
+                wID = navigator.geolocation.watchPosition(pos => {
                     const speed = Math.round((pos.coords.speed || 0) * 3.6);
-                    db.ref('live_trains/' + name).set({
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                        speed: speed,
-                        depTime: time,
-                        timestamp: Date.now()
-                    });
-                    document.getElementById('live-speed').innerText = speed + " KM/H";
-                    map.panTo([pos.coords.latitude, pos.coords.longitude]);
-                }, null, { enableHighAccuracy: true });
+                    document.getElementById('live-kmh').innerText = speed + " KM/H";
+                    
+                    // Update Graph
+                    speedChart.data.datasets[0].data.push(speed);
+                    speedChart.data.datasets[0].data.shift();
+                    speedChart.update('none');
 
-                btn.innerText = "STOP BROADCASTING";
-                btn.classList.add('active');
+                    db.ref('active_probes/' + user).set({
+                        name: user, train: document.getElementById('tSelect').value,
+                        lat: pos.coords.latitude, lng: pos.coords.longitude,
+                        speed: speed, ts: Date.now()
+                    });
+                    btn.innerText = "STOP TRANSMISSION"; btn.style.background = "#ef4444";
+                }, null, {enableHighAccuracy: true});
             } else {
-                navigator.geolocation.clearWatch(watchID);
-                watchID = null;
-                btn.innerText = "START BROADCASTING";
-                btn.classList.remove('active');
-                document.getElementById('infoBox').style.display = 'none';
+                navigator.geolocation.clearWatch(wID); wID = null;
+                db.ref('active_probes/' + user).remove();
+                btn.innerText = "START TELEMETRY"; btn.style.background = "#00ff88";
             }
         }
     </script>
