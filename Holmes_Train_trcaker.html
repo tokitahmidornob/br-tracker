@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BR Live | Holmes Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        :root { --primary: #00ff88; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+        .header { padding: 15px; background: var(--card); display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); }
+        #map { height: calc(100vh - 140px); width: 100%; }
+        .controls { height: 70px; display: flex; align-items: center; justify-content: center; background: var(--card); }
+        button { background: var(--primary); color: #000; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+        #status { font-size: 12px; color: var(--primary); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 style="margin:0;">🚂 BR LIVE</h2>
+        <div id="status">DATABASE: CONNECTING...</div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="controls">
+        <button id="trackBtn">START BROADCASTING</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script type="module">
+        // Import the specific Firebase functions we need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+        // Your specific config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g",
+            authDomain: "holmes-train-tracker.firebaseapp.com",
+            projectId: "holmes-train-tracker",
+            storageBucket: "holmes-train-tracker.firebasestorage.app",
+            messagingSenderId: "268759875143",
+            appId: "1:268759875143:web:038dcb2e89a78e70e03b62",
+            databaseURL: "https://holmes-train-tracker-default-rtdb.firebaseio.com/" // The pipe to the cloud
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        // Initialize Map
+        var map = L.map('map').setView([23.6850, 90.3563], 7);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        
+        var trainMarker = L.circleMarker([23.6850, 90.3563], {
+            radius: 8, color: '#00ff88', fillColor: '#00ff88', fillOpacity: 0.8
+        }).addTo(map);
+
+        // --- 1. THE LISTENER (Updates the map for everyone) ---
+        const trainRef = ref(db, 'live_trains/train_A');
+        onValue(trainRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                trainMarker.setLatLng([data.lat, data.lng]);
+                document.getElementById('status').innerText = "LIVE SPEED: " + data.speed + " KM/H";
+            }
+        });
+
+        // --- 2. THE BROADCASTER (Sends your GPS data) ---
+        let watchID = null;
+        const btn = document.getElementById('trackBtn');
+
+        btn.addEventListener('click', () => {
+            if (watchID === null) {
+                if ("geolocation" in navigator) {
+                    watchID = navigator.geolocation.watchPosition((pos) => {
+                        const payload = {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            speed: Math.round((pos.coords.speed || 0) * 3.6),
+                            timestamp: Date.now()
+                        };
+                        set(trainRef, payload); // Push to Cloud
+                        btn.innerText = "STOP BROADCASTING";
+                        btn.style.background = "#ff4757";
+                    }, (err) => alert("GPS Error: " + err.message), 
+                    { enableHighAccuracy: true });
+                }
+            } else {
+                navigator.geolocation.clearWatch(watchID);
+                watchID = null;
+                btn.innerText = "START BROADCASTING";
+                btn.style.background = "#00ff88";
+            }
+        });
+    </script>
+</body>
+</html>
