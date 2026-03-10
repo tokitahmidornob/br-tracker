@@ -3,80 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BR Live | Master Schedule & Telemetry</title>
+    <title>BR Live Pro | Final Telemetry</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #00ff88; --bg: #020617; --card: #1e293b; --text: #f8fafc; --danger: #ef4444; }
         body, html { margin: 0; padding: 0; height: 100vh; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
-        
         #gate-screen { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; }
         .gate-card { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; border: 1px solid #334155; }
-        .gate-input { width: 100%; padding: 12px; margin-bottom: 20px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 8px; box-sizing: border-box; }
         .btn-main { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
         .btn-track { background: var(--primary); color: #000; }
-        .btn-broadcast { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
-
         #app-shell { display: none; flex-direction: column; height: 100vh; }
         .header { padding: 10px 20px; background: var(--card); border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
         #map { flex: 2; width: 100%; }
-        
         #telemetry { flex: 1; background: #0a0f1e; padding: 10px; border-top: 1px solid #334155; }
         #speedChart { max-height: 120px; width: 100% !important; }
-
-        .panel { background: var(--card); padding: 15px; border-top: 2px solid var(--primary); overflow-y: auto; }
+        .panel { background: var(--card); padding: 15px; border-top: 2px solid var(--primary); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        select, input { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; }
+        select, input { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; width: 100%; font-size: 13px; }
     </style>
 </head>
 <body>
 
     <div id="gate-screen">
         <div class="gate-card">
-            <h1 style="color:var(--primary); margin:0;">🚂 BR LIVE <span style="font-weight:100">MASTER</span></h1>
-            <input type="text" id="pName" class="gate-input" placeholder="Enter Your Name">
-            <button class="btn-main btn-track" onclick="nav('track')">DETECTOR MODE</button>
-            <button class="btn-main btn-broadcast" onclick="nav('broadcast')">LOCO-PROBE MODE</button>
+            <h1 style="color:var(--primary); margin:0;">🚂 BR LIVE <span style="font-weight:100">PRO</span></h1>
+            <input type="text" id="pName" style="width:100%; padding:10px; margin:20px 0; border-radius:8px; border:none;" placeholder="Enter Name">
+            <button class="btn-main btn-track" onclick="nav('broadcast')">START COMMAND CENTER</button>
         </div>
     </div>
 
     <div id="app-shell">
         <header class="header">
             <h2 style="margin:0; font-size: 14px;">COMMAND CENTER</h2>
-            <div id="live-kmh" style="font-weight:bold; color:var(--primary); font-size: 18px;">0 KM/H</div>
+            <div id="live-kmh" style="font-weight:bold; color:var(--primary); font-size: 22px;">0 KM/H</div>
         </header>
 
         <div id="map"></div>
+        <div id="telemetry"><canvas id="speedChart"></canvas></div>
 
-        <div id="telemetry">
-            <canvas id="speedChart"></canvas>
-        </div>
-
-        <div class="panel" id="bPanel" style="display:none;">
+        <div class="panel">
             <div class="grid">
                 <select id="tSelect">
-                    <option value="">-- Select Train --</option>
-                    <optgroup label="Intercity Meter Gauge">
-                        <option value="Subarna_Express_701">701 Subarna Express (07:00)</option>
-                        <option value="Mohanagar_Goduli_703">703 Mohanagar Goduli (15:00)</option>
-                        <option value="Ekota_Express_705">705 Ekota Express (10:00)</option>
-                        <option value="Upukol_Express_711">711 Upukol Express (06:00)</option>
-                        <option value="Turna_Express_741">741 Turna Express (23:00)</option>
-                        <option value="Parabat_Express_709">709 Parabat Express (06:40)</option>
-                        <option value="Lalmoni_Express_751">751 Lalmoni Express (22:10)</option>
-                        <option value="Rangpur_Express_771">771 Rangpur Express (09:00)</option>
-                    </optgroup>
-                    <optgroup label="Intercity Broad Gauge">
-                        <option value="Sundarban_Express_725">725 Sundarban Express (19:30)</option>
-                        <option value="Silk_City_753">753 Silk City (14:40)</option>
-                        <option value="Padma_Express_759">759 Padma Express (23:10)</option>
-                        <option value="Chittra_Express_763">763 Chittra Express (08:30)</option>
-                    </optgroup>
-                    <optgroup label="Mail / Express">
-                        <option value="Dhaka_Mail_1">1 Dhaka Mail (22:30)</option>
-                        <option value="Karnaphuli_3">3 Karnaphuli Express (10:00)</option>
-                        <option value="Surma_Mail_9">9 Surma Mail (22:50)</option>
-                    </optgroup>
+                    <option value="Upukol_Express_711">711 Upukol Express (Noakhali to Dhaka) </option>
+                    <option value="Subarna_Express_701">701 Subarna Express (Chittagong to Dhaka) </option>
+                    <option value="Mohanagar_Provati_704">704 Mohanagar Provati (Dhaka to Chittagong) </option>
+                    <option value="Ekota_Express_705">705 Ekota Express (Dhaka to Dinajpur) </option>
+                    <option value="Sundarban_Express_725">725 Sundarban Express (Khulna to Dhaka) [cite: 3]</option>
+                    <option value="Dhaka_Mail_1">01 Dhaka Mail (Chittagong to Dhaka) [cite: 5]</option>
                 </select>
                 <select id="tStatus">
                     <option value="On Time">On Time</option>
@@ -105,21 +79,17 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let user = "";
 
-        // --- CHART SETUP ---
         const speedChart = new Chart(document.getElementById('speedChart'), {
             type: 'line',
             data: { labels: Array(20).fill(''), datasets: [{ data: Array(20).fill(0), borderColor: '#00ff88', tension: 0.4, fill: true, backgroundColor: 'rgba(0, 255, 136, 0.1)' }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { display: false } }, plugins: { legend: { display: false } } }
         });
 
-        function nav(m) {
-            user = document.getElementById('pName').value;
-            if(!user) return alert("Identify yourself!");
+        function nav() {
+            if(!document.getElementById('pName').value) return alert("Identify yourself!");
             document.getElementById('gate-screen').style.display = 'none';
             document.getElementById('app-shell').style.display = 'flex';
-            if(m === 'broadcast') document.getElementById('bPanel').style.display = 'block';
             loadMap();
         }
 
@@ -132,11 +102,7 @@
                 for(let k in markers) map.removeLayer(markers[k]);
                 for(let k in data) {
                     const p = data[k];
-                    markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
-                        <b>${p.train.replace(/_/g, ' ')}</b><br>
-                        Tracker: ${p.name}<br>
-                        Status: ${p.status} (${p.delay}m late from ${p.station})
-                    `);
+                    markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p.train}</b><br>Tracker: ${p.name}<br>Speed: ${p.speed} KM/H`);
                 }
             });
         }
@@ -144,31 +110,34 @@
         let wID = null;
         function run() {
             const btn = document.getElementById('mBtn');
-            const train = document.getElementById('tSelect').value;
-            const status = document.getElementById('tStatus').value;
-            const station = document.getElementById('tStation').value || "N/A";
-            const delay = document.getElementById('tDelay').value || "0";
-
-            if(!train) return alert("Select Train!");
-
             if(!wID) {
+                // SENSOR CALIBRATION: Requesting the highest possible GPS frequency
                 wID = navigator.geolocation.watchPosition(pos => {
-                    const speed = Math.round((pos.coords.speed || 0) * 3.6);
-                    document.getElementById('live-kmh').innerText = speed + " KM/H";
-                    speedChart.data.datasets[0].data.push(speed);
+                    // UNIT CALCULATION: m/s to km/h conversion
+                    let speed = pos.coords.speed;
+                    if (speed === null || speed < 0) speed = 0; 
+                    const kmh = Math.round(speed * 3.6);
+
+                    document.getElementById('live-kmh').innerText = kmh + " KM/H";
+                    speedChart.data.datasets[0].data.push(kmh);
                     speedChart.data.datasets[0].data.shift();
                     speedChart.update('none');
 
-                    db.ref('active_probes/' + user).set({
-                        name: user, train, status, station, delay,
+                    db.ref('active_probes/' + document.getElementById('pName').value).set({
+                        name: document.getElementById('pName').value,
+                        train: document.getElementById('tSelect').value,
+                        status: document.getElementById('tStatus').value,
+                        station: document.getElementById('tStation').value || "N/A",
+                        delay: document.getElementById('tDelay').value || "0",
                         lat: pos.coords.latitude, lng: pos.coords.longitude,
-                        speed: speed, ts: Date.now()
+                        speed: kmh, ts: Date.now()
                     });
-                    btn.innerText = "STOP BROADCAST"; btn.style.background = "#ef4444";
-                }, null, {enableHighAccuracy: true});
+                    btn.innerText = "STOP TRANSMISSION"; btn.style.background = "#ef4444";
+                }, (err) => alert("GPS Error: " + err.message), 
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
             } else {
                 navigator.geolocation.clearWatch(wID); wID = null;
-                db.ref('active_probes/' + user).remove();
+                db.ref('active_probes/' + document.getElementById('pName').value).remove();
                 btn.innerText = "START TELEMETRY"; btn.style.background = "#00ff88";
             }
         }
