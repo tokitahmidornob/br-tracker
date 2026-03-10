@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BR Live Pro | Final Command</title>
+    <title>BR Live Pro | Smart Command V5</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -12,12 +12,18 @@
         #gate-screen { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; }
         .gate-card { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; border: 1px solid #334155; }
         .btn-main { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .btn-track { background: var(--primary); color: #000; }
         #app-shell { display: none; flex-direction: column; height: 100vh; }
         .header { padding: 10px 20px; background: var(--card); border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
         #map { flex: 2; width: 100%; }
-        #telemetry { flex: 1; background: #0a0f1e; padding: 10px; border-top: 1px solid #334155; }
-        #speedChart { max-height: 110px; width: 100% !important; }
+        
+        /* --- SMART FEATURES UI --- */
+        .smart-dashboard { background: #0a101e; padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid #334155; }
+        .smart-item { background: #1e293b; padding: 8px; border-radius: 6px; text-align: center; }
+        .smart-label { font-size: 10px; color: #94a3b8; display: block; margin-bottom: 2px; }
+        .smart-val { font-size: 14px; font-weight: bold; color: var(--primary); }
+
+        .occupancy-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
         .panel { background: var(--card); padding: 15px; border-top: 2px solid var(--primary); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         select, input { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; width: 100%; font-size: 13px; }
@@ -27,40 +33,41 @@
 
     <div id="gate-screen">
         <div class="gate-card">
-            <h1 style="color:var(--primary); margin:0;">🚂 BR LIVE <span style="font-weight:100">PRO</span></h1>
-            <input type="text" id="pName" style="width:100%; padding:10px; margin:20px 0; border-radius:8px; border:none;" placeholder="Enter Name">
-            <div style="display:flex; gap:10px;">
-                <button class="btn-main btn-track" style="background:#3b82f6; color:white;" onclick="nav('track')">DETECTOR</button>
-                <button class="btn-main btn-track" onclick="nav('broadcast')">PROBE</button>
-            </div>
+            <h1 style="color:var(--primary); margin:0;">🚂 BR SMART <span style="font-weight:100">PRO</span></h1>
+            <input type="text" id="pName" style="width:100%; padding:10px; margin:20px 0; border-radius:8px; border:none;" placeholder="Your Name">
+            <button class="btn-main" style="background:var(--primary); color:#000;" onclick="nav()">LAUNCH SYSTEM</button>
         </div>
     </div>
 
     <div id="app-shell">
         <header class="header">
-            <h2 style="margin:0; font-size: 14px;">COMMAND CENTER</h2>
+            <h2 style="margin:0; font-size: 14px;">AI COMMAND</h2>
             <div id="live-kmh" style="font-weight:bold; color:var(--primary); font-size: 22px;">0 KM/H</div>
         </header>
 
         <div id="map"></div>
-        <div id="telemetry"><canvas id="speedChart"></canvas></div>
 
-        <div class="panel" id="bPanel" style="display:none;">
+        <div class="smart-dashboard">
+            <div class="smart-item"><span class="smart-label">CROWD STATUS</span><div id="crowd-status"><span class="occupancy-dot" style="background:gray;"></span>Unknown</div></div>
+            <div class="smart-item"><span class="smart-label">PREDICTED ETA</span><span id="eta-val" class="smart-val">Calculating...</span></div>
+            <div class="smart-item"><span class="smart-label">CARRIAGE POSITION</span><span class="smart-val">FRONT (Engine Side)</span></div>
+            <div class="smart-item"><span class="smart-label">JOURNEY PROGRESS</span><span id="prog-val" class="smart-val">0%</span></div>
+        </div>
+
+        <div class="panel">
             <div class="grid">
                 <select id="tSelect">
-                    <option value="Upukul_Express_712">712 Upukul Express (Dhaka to Noakhali) - 03:10 PM</option>
-                    <option value="Upukul_Express_711">711 Upukul Express (Noakhali to Dhaka) - 06:00 AM</option>
+                    <option value="Upukul_Express_712">712 Upukul Express (03:10 PM)</option>
                     <option value="Subarna_Express_701">701 Subarna Express (07:00 AM)</option>
-                    <option value="Mohanagar_Provati_704">704 Mohanagar Provati (07:40 AM)</option>
-                    <option value="Ekota_Express_705">705 Ekota Express (10:00 AM)</option>
                 </select>
-                <select id="tStatus"><option value="On Time">On Time</option><option value="Delayed">Delayed</option></select>
+                <select id="tCrowd" onchange="reportCrowd()">
+                    <option value="">Report Crowd?</option>
+                    <option value="Low">Seats Available</option>
+                    <option value="Mid">Standing Room</option>
+                    <option value="High">Packed</option>
+                </select>
             </div>
-            <div class="grid">
-                <input type="text" id="tStation" placeholder="Delayed from Station?">
-                <input type="number" id="tDelay" placeholder="Mins Late">
-            </div>
-            <button id="mBtn" onclick="run()" style="width:100%; padding:14px; background:var(--primary); color:#000; font-weight:bold; border:none; border-radius:10px;">START TELEMETRY</button>
+            <button id="mBtn" onclick="run()" style="width:100%; padding:14px; background:var(--primary); color:#000; font-weight:bold; border:none; border-radius:10px;">START SMART TELEMETRY</button>
         </div>
     </div>
 
@@ -79,17 +86,10 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const speedChart = new Chart(document.getElementById('speedChart'), {
-            type: 'line',
-            data: { labels: Array(20).fill(''), datasets: [{ data: Array(20).fill(0), borderColor: '#00ff88', tension: 0.4, fill: true, backgroundColor: 'rgba(0, 255, 136, 0.1)' }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { display: false } }, plugins: { legend: { display: false } } }
-        });
-
-        function nav(mode) {
+        function nav() {
             if(!document.getElementById('pName').value) return alert("Identify yourself!");
             document.getElementById('gate-screen').style.display = 'none';
             document.getElementById('app-shell').style.display = 'flex';
-            if(mode === 'broadcast') document.getElementById('bPanel').style.display = 'block';
             loadMap();
         }
 
@@ -103,7 +103,7 @@
                 for(let k in data) {
                     const p = data[k];
                     if(Date.now() - p.ts < 600000) {
-                        markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p.train.replace(/_/g,' ')}</b><br>Tracker: ${p.name}<br>Speed: ${p.speed} KM/H`);
+                        markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p.train}</b><br>Crowd: ${p.crowd || 'N/A'}`);
                     }
                 }
             });
@@ -114,30 +114,35 @@
             const btn = document.getElementById('mBtn');
             if(!wID) {
                 wID = navigator.geolocation.watchPosition(pos => {
-                    let speed = pos.coords.speed;
-                    if (speed === null || speed < 0) speed = 0; 
-                    const kmh = Math.round(speed * 3.6);
+                    let speed = Math.round((pos.coords.speed || 0) * 3.6);
+                    document.getElementById('live-kmh').innerText = speed + " KM/H";
+                    
+                    // Simple ETA Logic: Based on distance to destination (approx 160km for Noakhali)
+                    let distLeft = 160; // Mock distance for demo
+                    let etaHours = speed > 0 ? distLeft / speed : 0;
+                    document.getElementById('eta-val').innerText = speed > 0 ? (etaHours.toFixed(1) + " Hrs") : "Stopped";
 
-                    document.getElementById('live-kmh').innerText = kmh + " KM/H";
-                    speedChart.data.datasets[0].data.push(kmh);
-                    speedChart.data.datasets[0].data.shift();
-                    speedChart.update('none');
-
-                    db.ref('active_probes/' + document.getElementById('pName').value).set({
+                    db.ref('active_probes/' + document.getElementById('pName').value).update({
                         name: document.getElementById('pName').value,
                         train: document.getElementById('tSelect').value,
-                        status: document.getElementById('tStatus').value,
-                        station: document.getElementById('tStation').value || "N/A",
-                        delay: document.getElementById('tDelay').value || "0",
+                        crowd: document.getElementById('tCrowd').value,
                         lat: pos.coords.latitude, lng: pos.coords.longitude,
-                        speed: kmh, ts: Date.now()
+                        speed: speed, ts: Date.now()
                     });
                     btn.innerText = "STOP TRANSMISSION"; btn.style.background = "#ef4444";
-                }, null, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+                }, null, { enableHighAccuracy: true });
             } else {
                 navigator.geolocation.clearWatch(wID); wID = null;
                 db.ref('active_probes/' + document.getElementById('pName').value).remove();
-                btn.innerText = "START TELEMETRY"; btn.style.background = "#00ff88";
+                btn.innerText = "START SMART TELEMETRY"; btn.style.background = "#00ff88";
+            }
+        }
+
+        function reportCrowd() {
+            if(wID) {
+                const crowd = document.getElementById('tCrowd').value;
+                let color = crowd === 'Low' ? 'green' : (crowd === 'Mid' ? 'yellow' : 'red');
+                document.getElementById('crowd-status').innerHTML = `<span class="occupancy-dot" style="background:${color};"></span>${crowd}`;
             }
         }
     </script>
