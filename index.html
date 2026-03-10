@@ -7,8 +7,6 @@
     <title>Bangladesh Railway | Crowdsourced Telemetry</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    
     <style>
         /* NPF Official Color Palette & OLED Optimization */
         :root { 
@@ -25,74 +23,136 @@
         /* --- AUTHENTICATION GATE --- */
         #gate-screen { position: fixed; inset: 0; z-index: 9999; background: var(--oled-black); display: flex; align-items: center; justify-content: center; padding: 20px; }
         .gate-card { background: var(--npf-base); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; border-top: 4px solid var(--npf-action); box-shadow: 0 10px 30px rgba(1, 111, 185, 0.2); }
-        .gate-input { width: 100%; padding: 12px; margin-bottom: 15px; background: var(--oled-black); border: 1px solid #334; color: white; border-radius: 6px; box-sizing: border-box; }
+        .gate-input { width: 100%; padding: 14px; margin-bottom: 20px; background: var(--oled-black); border: 1px solid #334; color: white; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        .btn-gate { width: 100%; padding: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; transition: 0.3s; }
+        .btn-track { background: var(--npf-action); color: white; }
+        .btn-broadcast { background: transparent; color: var(--npf-accent); border: 2px solid var(--npf-accent); }
         
         /* --- MAIN UI --- */
         #app-shell { display: none; flex-direction: column; height: 100vh; }
-        .header { padding: 15px; background: var(--npf-base); border-bottom: 2px solid var(--npf-action); display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
+        .header { padding: 12px 20px; background: var(--npf-base); border-bottom: 2px solid var(--npf-action); display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
         
         #map { flex-grow: 1; width: 100%; z-index: 1; background: var(--oled-black); }
         
         /* --- METADATA PANEL --- */
-        .panel { background: var(--npf-base); padding: 15px; border-top: 2px solid var(--npf-accent); z-index: 1000; }
+        .panel { display: none; background: var(--npf-base); padding: 15px; border-top: 2px solid var(--npf-accent); z-index: 1000; max-height: 40vh; overflow-y: auto; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        select { background: var(--oled-black); border: 1px solid #445; color: white; padding: 10px; border-radius: 6px; width: 100%; font-size: 12px; }
+        select { background: var(--oled-black); border: 1px solid #445; color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 13px; }
         
-        .btn-action { width: 100%; padding: 14px; background: var(--npf-action); color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-action { width: 100%; padding: 16px; background: var(--npf-action); color: white; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; }
         .btn-action.active { background: var(--npf-alert); }
-
-        /* Status Badges */
-        .badge { font-size: 10px; padding: 4px 8px; border-radius: 4px; background: var(--oled-black); color: var(--npf-accent); border: 1px solid var(--npf-accent); }
     </style>
 </head>
 <body>
 
     <div id="gate-screen">
         <div class="gate-card">
-            <h2 style="color:var(--text-light); margin-top:0;">বাংলাদেশ রেলওয়ে</h2>
-            <p style="color:var(--npf-accent); font-size:12px; margin-bottom:20px;">National Transit Telemetry (PDPO Compliant)</p>
-            <input type="text" id="pName" class="gate-input" placeholder="Passenger Name / E-Ticket ID">
-            <button class="btn-action" onclick="initApp()">Verify & Enter</button>
+            <h2 style="color:var(--text-light); margin-top:0; margin-bottom:5px;">বাংলাদেশ রেলওয়ে</h2>
+            <p style="color:var(--npf-accent); font-size:12px; margin-bottom:25px; text-transform: uppercase;">National Transit Telemetry</p>
+            
+            <input type="text" id="pName" class="gate-input" placeholder="Passenger Name / ID">
+            
+            <button class="btn-gate btn-track" onclick="initApp('track')">I WANT TO TRACK</button>
+            <button class="btn-gate btn-broadcast" onclick="initApp('broadcast')">I AM BROADCASTING (PROBE)</button>
         </div>
     </div>
 
     <div id="app-shell">
         <header class="header">
             <div style="display:flex; flex-direction:column;">
-                <span style="font-weight:bold; font-size:14px;">BNDA COMMAND</span>
-                <span id="sys-status" style="font-size:10px; color:var(--npf-accent);">Wake Lock: Standby</span>
+                <span style="font-weight:bold; font-size:15px; letter-spacing: 1px;">BNDA COMMAND</span>
+                <span id="sys-status" style="font-size:11px; color:var(--npf-accent);">Mode: Observer</span>
             </div>
-            <div id="live-kmh" style="font-weight:900; color:var(--text-light); font-size: 20px;">0 KM/H</div>
+            <div id="live-kmh" style="font-weight:900; color:var(--text-light); font-size: 22px;">0 KM/H</div>
         </header>
 
         <div id="map"></div>
 
-        <div class="panel">
+        <div class="panel" id="bPanel">
             <div class="grid">
                 <select id="tSelect">
-                    <option value="">-- Select Train --</option>
-                    <option value="701-702_Subarna">701-702 Subarna Express</option>
-                    <option value="703-704_Mahanagar">703-704 Mahanagar Prabhati/Godhuli</option>
-                    <option value="705-706_Ekota">705-706 Ekota Express</option>
-                    <option value="709-710_Parabat">709-710 Parabat Express</option>
-                    <option value="711-712_Upakul">711-712 Upakul Express</option>
-                    <option value="725-726_Sundarban">725-726 Sundarban Express</option>
-                    <option value="741-742_Turna">741-742 Turna Express</option>
-                    <option value="787-788_Shonar_Bangla">787-788 Shonar Bangla Express</option>
+                    <option value="">-- SELECT YOUR TRAIN --</option>
+                    
+                    <optgroup label="Intercity (Meter/Dual Gauge)">
+                        <option value="701-702_Subarna">701/702 Subarna Express</option>
+                        <option value="703-704_Mohanagar_Goduli_Provati">703/704 Mohanagar Goduli/Provati</option>
+                        <option value="705-706_Ekota">705/706 Ekota Express</option>
+                        <option value="707-708_Tista">707/708 Tista Express</option>
+                        <option value="709-710_Parabat">709/710 Parabat Express</option>
+                        <option value="711-712_Upukol">711/712 Upukol Express</option>
+                        <option value="713-714_Karutoa">713/714 Karutoa Express</option>
+                        <option value="717-718_Joyantika">717/718 Joyantika Express</option>
+                        <option value="719-720_Paharika">719/720 Paharika Express</option>
+                        <option value="721-722_Mohanagar">721/722 Mohanagar Express</option>
+                        <option value="723-724_Uddayan">723/724 Uddayan Express</option>
+                        <option value="729-730_Meghna">729/730 Meghna Express</option>
+                        <option value="735-736_Agnibina">735/736 Agnibina Express</option>
+                        <option value="737-738_Egarosindhur_Provati">737/738 Egarosindhur Provati</option>
+                        <option value="749-750_Egarosindhur_Goduli">749/750 Egarosindhur Goduli</option>
+                        <option value="739-740_Upaban">739/740 Upaban Express</option>
+                        <option value="741-742_Turna">741/742 Turna Express</option>
+                        <option value="743-744_Bharamaputra">743/744 Bharamaputra</option>
+                        <option value="745-746_Jamuna">745/746 Jamuna Express</option>
+                        <option value="751-752_Lalmoni">751/752 Lalmoni Express</option>
+                        <option value="757-758_Drutojan">757/758 Drutojan Express</option>
+                        <option value="767-768_Dolonchapa">767/768 Dolonchapa Express</option>
+                        <option value="771-772_Rangpur">771/772 Rangpur Express</option>
+                        <option value="773-774_Kalani">773/774 Kalani Express</option>
+                        <option value="777-778_Haor">777/778 Haor Express</option>
+                        <option value="781-782_Kishorgonj">781/782 Kishorgonj Express</option>
+                        <option value="785-786_Bijoy">785/786 Bijoy Express</option>
+                        <option value="787-788_Sonar_Bangla">787/788 Sonar Bangla Express</option>
+                        <option value="813-814_Coxs_Bazar">813/814 Cox's Bazar Express</option>
+                        <option value="815-816_Parjotak">815/816 Parjotak Express</option>
+                    </optgroup>
+
+                    <optgroup label="Intercity (Broad Gauge)">
+                        <option value="715-716_Kapotaskh">715/716 Kapotaskh Express</option>
+                        <option value="725-726_Sundarban">725/726 Sundarban Express</option>
+                        <option value="727-728_Rupsha">727/728 Rupsha Express</option>
+                        <option value="731-732_Barendra">731/732 Barendra Express</option>
+                        <option value="733-734_Titumir">733/734 Titumir Express</option>
+                        <option value="747-748_Simanta">747/748 Simanta Express</option>
+                        <option value="753-754_Silk_City">753/754 Silk City Express</option>
+                        <option value="755-756_Madhumati">755/756 Madhumati Express</option>
+                        <option value="759-760_Padma">759/760 Padma Express</option>
+                        <option value="761-762_Sagardari">761/762 Sagardari Express</option>
+                        <option value="763-764_Chittra">763/764 Chittra Express</option>
+                        <option value="765-766_Nilsagar">765/766 Nilsagar Express</option>
+                        <option value="769-770_Dhumketue">769/770 Dhumketue Express</option>
+                        <option value="775-776_Sirajgong">775/776 Sirajgong Express</option>
+                        <option value="779-780_Kalukhali_Vatiapara">779/780 Kalukhali-Vatiapara</option>
+                        <option value="3107-3110_Moitree">3107/3110 Moitree Express (Intl)</option>
+                    </optgroup>
+
+                    <optgroup label="Mail / Express / Commuter">
+                        <option value="1-2_Dhaka_Mail">1/2 Dhaka/Chittagong Mail</option>
+                        <option value="3-4_Karnaphuli">3/4 Karnaphuli Express</option>
+                        <option value="7-8_Uttarbanga">7/8 Uttarbanga Mail</option>
+                        <option value="9-10_Surma">9/10 Surma Mail</option>
+                        <option value="11-12_Noakhali">11/12 Dhaka/Noakhali Express</option>
+                        <option value="13-14_Jalalabad">13/14 Jalalabad Express</option>
+                        <option value="17-18_Kushiara">17/18 Kushiara Express</option>
+                        <option value="33-36_Titas">33/36 Titas Commuter</option>
+                        <option value="37-38_Mymensingh">37/38 Mymensingh Express</option>
+                        <option value="67-68_Chattala">67/68 Chattala Express</option>
+                    </optgroup>
+
                 </select>
                 <select id="tStation">
-                    <option value="">-- Starting Station --</option>
+                    <option value="Unknown">-- Starting Station --</option>
                     <option value="Dhaka">Dhaka (Kamlapur)</option>
                     <option value="Chittagong">Chittagong</option>
                     <option value="Rajshahi">Rajshahi</option>
                     <option value="Sylhet">Sylhet</option>
                     <option value="Khulna">Khulna</option>
-                    <option value="Akhaura">Akhaura Junction</option>
+                    <option value="Noakhali">Noakhali</option>
                 </select>
             </div>
             <div class="grid">
                 <select id="tCrowd">
-                    <option value="">-- Crowd Level --</option>
+                    <option value="Unknown">-- Crowd Level --</option>
                     <option value="Empty">Empty</option>
                     <option value="Light">Light</option>
                     <option value="Moderate">Moderate</option>
@@ -100,7 +160,7 @@
                     <option value="Crush Capacity">Crush Capacity</option>
                 </select>
                 <select id="tSeat">
-                    <option value="">-- Availability --</option>
+                    <option value="Unknown">-- Availability --</option>
                     <option value="Seats Available">Seats Available</option>
                     <option value="Standing Room Only">Standing Room Only</option>
                     <option value="No Standing Room">No Standing Room</option>
@@ -128,47 +188,49 @@
         let uName = "";
         let wakeLock = null;
 
-        // --- PWA WAKE LOCK API ---
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    document.getElementById('sys-status').innerText = "Wake Lock: Active";
+                    document.getElementById('sys-status').innerText = "Wake Lock: Active (Probe Mode)";
                     wakeLock.addEventListener('release', () => {
-                        document.getElementById('sys-status').innerText = "Wake Lock: Released";
+                        if (wID) document.getElementById('sys-status').innerText = "Wake Lock: Released!";
                     });
                 }
-            } catch (err) { console.error(`Wake Lock Error: ${err.name}, ${err.message}`); }
+            } catch (err) { console.error(`Wake Lock Error: ${err.message}`); }
         }
 
-        // Reacquire lock if user switches tabs and comes back
         document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
+            if (wakeLock !== null && document.visibilityState === 'visible' && wID) {
                 await requestWakeLock();
             }
         });
 
-        // --- CORE INITIALIZATION ---
-        function initApp() {
+        // --- CORE INITIALIZATION (RESTORED ROLE LOGIC) ---
+        function initApp(mode) {
             uName = document.getElementById('pName').value;
-            if(!uName) return alert("Verification Required: Enter Name");
+            if(!uName) return alert("Verification Required: Enter your Name or Ticket ID");
+            
             document.getElementById('gate-screen').style.display = 'none';
             document.getElementById('app-shell').style.display = 'flex';
-            setTimeout(() => { loadMap(); }, 100);
+            
+            if (mode === 'broadcast') {
+                document.getElementById('bPanel').style.display = 'block';
+                document.getElementById('sys-status').innerText = "Mode: Probe (Ready to Broadcast)";
+            } else {
+                document.getElementById('bPanel').style.display = 'none';
+                document.getElementById('sys-status').innerText = "Mode: Detector (Tracking Only)";
+            }
+            
+            setTimeout(() => { loadMap(); }, 200);
         }
 
-        // --- GEOSPATIAL MAP (OSM + OpenRailwayMap) ---
         let map, markers = {};
         function loadMap() {
             map = L.map('map', {zoomControl: false}).setView([23.8103, 90.4125], 7);
-            
-            // Base Dark Topography
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
-            
-            // OpenRailwayMap Infrastructure Overlay
             L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.6 }).addTo(map);
             
-            // Schema separation as per architecture docs (Reading from aggregation)
             db.ref('active_trains').on('value', snap => {
                 const data = snap.val() || {};
                 for(let k in markers) map.removeLayer(markers[k]);
@@ -176,17 +238,18 @@
                     const p = data[k];
                     if(Date.now() - p.ts < 600000) {
                         markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
-                            <b style="color:var(--npf-action)">${p.train.replace(/_/g, ' ')}</b><br>
-                            Crowd: ${p.crowd}<br>Availability: ${p.seat}<br>Speed: ${p.speed} KM/H
+                            <b style="color:var(--npf-action); font-size:14px;">${p.train.replace(/_/g, ' ')}</b><br>
+                            Tracker: ${p.name}<br>
+                            Crowd: ${p.crowd} | ${p.seat}<br>
+                            Speed: <b>${p.speed} KM/H</b>
                         `);
                     }
                 }
             });
         }
 
-        // --- HAVERSINE SPOOFING MITIGATION ---
         function getHaversine(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Earth Radius in KM
+            const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
@@ -196,16 +259,14 @@
 
         let wID = null;
         let lastLat = null, lastLng = null, lastTs = null;
-        let sLat = 0, sLng = 0; // Smoothing variables
+        let sLat = 0, sLng = 0; 
 
-        // --- TELEMETRY ENGINE ---
         async function toggleTelemetry() {
             const btn = document.getElementById('mBtn');
             const train = document.getElementById('tSelect').value;
             if(!train) return alert("Select a train designation to begin.");
 
             if(!wID) {
-                // Request Wake Lock on Start
                 await requestWakeLock();
 
                 wID = navigator.geolocation.watchPosition(pos => {
@@ -213,19 +274,12 @@
                     const cLng = pos.coords.longitude;
                     const now = Date.now();
 
-                    // Heuristic Spoofing Validation
                     if (lastLat && lastTs) {
                         const distKm = getHaversine(lastLat, lastLng, cLat, cLng);
                         const timeHr = (now - lastTs) / 3600000;
-                        const calcSpeedKmh = distKm / timeHr;
-                        
-                        if (calcSpeedKmh > 130) {
-                            console.warn("SPOOFING REJECTED: Impossible Velocity (>130km/h) detected.");
-                            return; // Discard invalid coordinate
-                        }
+                        if (timeHr > 0 && (distKm / timeHr) > 130) return; 
                     }
 
-                    // Exponential Moving Average (EMA) Smoothing
                     const alpha = 0.3;
                     if (sLat === 0) { sLat = cLat; sLng = cLng; }
                     sLat = (cLat * alpha) + (sLat * (1 - alpha));
@@ -244,11 +298,8 @@
                         lat: sLat, lng: sLng, speed: speed, ts: now
                     };
 
-                    // Architecture specifies writing to raw_telemetry sharded by date
                     const dateStr = new Date().toISOString().split('T')[0];
                     db.ref(`raw_telemetry/${dateStr}/broadcasts/${uName}`).set(payload);
-                    
-                    // Mirroring to active_trains for immediate UI feedback without backend Cloud Functions
                     db.ref('active_trains/' + uName).set(payload);
                     
                     btn.innerText = "HALT BROADCAST"; btn.classList.add('active');
@@ -260,7 +311,7 @@
                 
                 db.ref('active_trains/' + uName).remove();
                 btn.innerText = "INITIATE BROADCAST"; btn.classList.remove('active');
-                document.getElementById('sys-status').innerText = "Wake Lock: Standby";
+                document.getElementById('sys-status').innerText = "Mode: Probe (Standby)";
             }
         }
     </script>
