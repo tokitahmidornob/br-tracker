@@ -186,7 +186,6 @@
 
         // --- MASSIVE DYNAMIC ROUTE MATRIX (ALL INTERCITY TRAINS) ---
         const routeMatrix = {
-            // Dhaka - Chittagong - Cox's Bazar
             "701-702_Subarna": ["Dhaka", "Dhaka Airport", "Chittagong"],
             "787-788_Sonar_Bangla": ["Dhaka", "Dhaka Airport", "Chittagong"],
             "703-704_Mohanagar_Provati": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
@@ -196,7 +195,6 @@
             "815-816_Parjotak": ["Dhaka", "Dhaka Airport", "Chittagong", "Cox's Bazar"],
             "67-68_Chattala": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
             
-            // Dhaka - Noakhali / Sylhet
             "711-712_Upukol": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
             "11-12_Noakhali": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
             "709-710_Parabat": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Azampur", "Akhaura", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
@@ -204,7 +202,6 @@
             "739-740_Upaban": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Shaistaganj", "Srimangal", "Bhanugach", "Kulaura", "Maijgaon", "Sylhet"],
             "773-774_Kalani": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Shaistaganj", "Srimangal", "Bhanugach", "Kulaura", "Maijgaon", "Sylhet"],
             
-            // Dhaka - North Bengal
             "705-706_Ekota": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Setabganj", "Pirganj", "Thakurgaon Road", "Ruhea", "Panchagarh"],
             "757-758_Drutojan": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Setabganj", "Pirganj", "Thakurgaon Road", "Ruhea", "Panchagarh"],
             "765-766_Nilsagar": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
@@ -212,14 +209,12 @@
             "751-752_Lalmoni": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Bogura", "Sonatola", "Bonarpara", "Gaibandha", "Bamondanga", "Pirgachha", "Kaunia", "Lalmonirhat"],
             "775-776_Sirajganj": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Jamtoil"],
             
-            // Broad Gauge (Rajshahi / Khulna)
             "753-754_Silk_City": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
             "759-760_Padma": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
             "769-770_Dhumketue": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
             "725-726_Sundarban": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi", "Hardinge Bridge", "Poradah", "Kushtia", "Chuadanga", "Darshana", "Kotchandpur", "Jessore", "Noapara", "Khulna"],
             "763-764_Chittra": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi", "Hardinge Bridge", "Poradah", "Kushtia", "Chuadanga", "Darshana", "Kotchandpur", "Jessore", "Noapara", "Khulna"],
             
-            // Mymensingh / Jamalpur / Kishoreganj
             "707-708_Tista": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Melandah Bazar", "Islampur Bazar", "Dewanganj Bazar"],
             "735-736_Agnibina": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Bausi", "Tarakandi"],
             "743-744_Brahmaputra": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Melandah Bazar", "Islampur Bazar", "Dewanganj Bazar"],
@@ -229,7 +224,6 @@
             "781-782_Kishoreganj": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
             "777-778_Haor": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Gouripur", "Shyamganj", "Netrokona", "Thakurkrok", "Barhatta", "Mohanganj"],
             
-            // Cross Country
             "719-720_Paharika": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Comilla", "Akhaura", "Harashpur", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
             "723-724_Uddayan": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Comilla", "Akhaura", "Harashpur", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
             "729-730_Meghna": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
@@ -240,7 +234,6 @@
             "715-716_Kapotaskh": ["Khulna", "Noapara", "Jessore", "Kotchandpur", "Darshana", "Chuadanga", "Poradah", "Bheramara", "Ishurdi", "Abdulpur", "Rajshahi"],
             "761-762_Sagardari": ["Khulna", "Noapara", "Jessore", "Kotchandpur", "Darshana", "Chuadanga", "Poradah", "Bheramara", "Ishurdi", "Abdulpur", "Rajshahi"],
             
-            // International / Mail
             "3107-3110_Moitree": ["Dhaka", "Ishurdi", "Darshana"],
             "1-2_Dhaka_Mail": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
             "3-4_Karnaphuli": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"]
@@ -249,7 +242,6 @@
         const defaultStations = ["Dhaka", "Dhaka Airport", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Comilla", "Noakhali", "Joydebpur", "Parbatipur"];
 
         // --- DYNAMIC HTML POPULATION FOR DROPDOWNS ---
-        // This ensures the Tracker and Broadcaster always have the exact same exhaustive list
         function populateTrainDropdowns() {
             const fSelect = document.getElementById("fSelect");
             const tSelect = document.getElementById("tSelect");
@@ -265,7 +257,6 @@
             }
         }
         
-        // Run immediately to build UI
         populateTrainDropdowns();
 
         function updateStationRoute() {
@@ -388,6 +379,7 @@
             
             for(let id in markers) map.removeLayer(markers[id]);
             
+            // HIGHLANDER LOGIC: Get latest ping per train
             const latestByTrain = {};
             for(let k in globalDbData) {
                 const p = globalDbData[k];
@@ -404,6 +396,7 @@
                 if (filterVal !== "" && p.train !== filterVal) continue;
                 if (filterVal !== "") checkGeofence(p.lat, p.lng);
                 
+                // GHOST LOGIC: 3 hour persistence
                 if(diffMs < 10800000) { 
                     let statusUI = diffMins < 2 ? `<span style="color:#00ff88;">● Live Now</span>` : `<span style="color:#fbbf24;">● Last seen ${diffMins} mins ago</span>`;
                     markers[trainId] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
@@ -450,10 +443,11 @@
                     const cLng = pos.coords.longitude;
                     const now = Date.now();
 
-                    // Anti-Spoofing: Track Proximity Check
+                    // --- ANTI-SPOOFING: TRACK PROXIMITY CHECK + SEEK & DESTROY ---
                     const isOnTrack = verifyTrackProximity(cLat, cLng, train);
                     if (!isOnTrack) {
-                        alert("🚨 FALSE ALARM DETECTED: You are broadcasting from outside the designated railway tracks for this train. Transmission halted.");
+                        alert("🚨 FALSE ALARM DETECTED: You are broadcasting from outside the designated railway tracks for this train. Transmission halted and marker erased.");
+                        db.ref('active_trains/' + uName).remove(); // Seek and Destroy the fake ping
                         toggleTelemetry(); 
                         return;
                     }
@@ -462,7 +456,7 @@
                     const cHdg = Math.round(pos.coords.heading || 0);
                     checkGeofence(cLat, cLng);
 
-                    // Anti-Spoofing: Impossible Speed Jump Check
+                    // --- ANTI-SPOOFING: IMPOSSIBLE SPEED JUMP ---
                     if (lastLat && lastTs) {
                         const distKm = getHaversine(lastLat, lastLng, cLat, cLng);
                         const timeHr = (now - lastTs) / 3600000;
