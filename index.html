@@ -305,23 +305,41 @@
         function loadMap() {
             map = L.map('map', {zoomControl: false}).setView([23.8103, 90.4125], 7);
             
-            // Base Dark Topography
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
-            // OpenRailwayMap Overlay
             L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.6 }).addTo(map);
             
             db.ref('active_trains').on('value', snap => {
                 const data = snap.val() || {};
+                const now = Date.now();
+                
                 for(let k in markers) map.removeLayer(markers[k]);
+                
                 for(let k in data) {
                     const p = data[k];
-                    if(Date.now() - p.ts < 600000) { // Expire points older than 10 mins
+                    const diffMs = now - p.ts;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    
+                    // Keep data on map for up to 3 hours (10800000 ms)
+                    if(diffMs < 10800000) { 
+                        let statusUI = "";
+                        let speedUI = "";
+                        
+                        // SIGNAL DECAY LOGIC (Ghost Markers)
+                        if (diffMins < 2) {
+                            statusUI = `<span style="color:#00ff88;">● Live Now</span>`;
+                            speedUI = `<b>${p.speed} KM/H</b>`;
+                        } else {
+                            statusUI = `<span style="color:#fbbf24;">● Last seen ${diffMins} mins ago</span>`;
+                            speedUI = `<i>(Was ${p.speed} KM/H)</i>`;
+                        }
+
                         markers[k] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
                             <b style="color:var(--npf-action); font-size:14px;">${p.train.replace(/_/g, ' ')}</b><br>
                             Tracker: ${p.name}<br>
                             Station: ${p.station}<br>
                             Crowd: ${p.crowd} | ${p.seat}<br>
-                            Speed: <b>${p.speed} KM/H</b>
+                            Speed: ${speedUI}<br>
+                            Status: ${statusUI}
                         `);
                     }
                 }
@@ -354,7 +372,7 @@
                     const cLng = pos.coords.longitude;
                     const now = Date.now();
 
-                    // Heuristic Spoofing Mitigation (Discard > 130 km/h jump)
+                    // Heuristic Spoofing Mitigation
                     if (lastLat && lastTs) {
                         const distKm = getHaversine(lastLat, lastLng, cLat, cLng);
                         const timeHr = (now - lastTs) / 3600000;
@@ -391,7 +409,9 @@
                 navigator.geolocation.clearWatch(wID); wID = null;
                 if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
                 
-                db.ref('active_trains/' + uName).remove();
+                // DATA PERSISTENCE: We deliberately DO NOT remove the data here.
+                // This allows the "Ghost" marker (Last seen X mins ago) to display.
+                
                 btn.innerText = "INITIATE BROADCAST"; btn.classList.remove('active');
                 document.getElementById('sys-status').innerText = "Mode: Probe (Standby)";
             }
