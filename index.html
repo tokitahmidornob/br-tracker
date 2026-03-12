@@ -138,6 +138,7 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>
+        // --- MASSIVE COORDINATE DATABASE (80+ STATIONS) ---
         const stationCoords = {
             "Dhaka (Kamlapur)": {lat: 23.7275, lng: 90.4261}, "Dhaka": {lat: 23.7275, lng: 90.4261},
             "Dhaka Airport": {lat: 23.8515, lng: 90.4073}, "Joydebpur": {lat: 24.0000, lng: 90.4250},
@@ -192,6 +193,7 @@
             "Nangalkot": {lat: 23.1333, lng: 91.1833}
         };
 
+        // Populate Alarm and ETA Dropdowns dynamically
         const alarmSelect = document.getElementById("alarmSelect");
         const etaSelect = document.getElementById("etaStation");
         for (let station in stationCoords) {
@@ -204,6 +206,7 @@
             etaSelect.appendChild(optE);
         }
 
+        // --- MASSIVE DYNAMIC ROUTE MATRIX (ALL INTERCITY TRAINS) ---
         const routeMatrix = {
             "701-702_Subarna": ["Dhaka", "Dhaka Airport", "Chittagong"],
             "787-788_Sonar_Bangla": ["Dhaka", "Dhaka Airport", "Chittagong"],
@@ -260,6 +263,7 @@
 
         const defaultStations = ["Dhaka", "Dhaka Airport", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Comilla", "Noakhali", "Joydebpur", "Parbatipur"];
 
+        // --- DYNAMIC HTML POPULATION FOR DROPDOWNS ---
         function populateTrainDropdowns() {
             const fSelect = document.getElementById("fSelect");
             const tSelect = document.getElementById("tSelect");
@@ -291,6 +295,7 @@
             });
         }
 
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g",
             authDomain: "holmes-train-tracker.firebaseapp.com",
@@ -326,6 +331,7 @@
             }
         }
 
+        // --- THE GEOSPATIAL CROSS-TRACK VALIDATOR ---
         function verifyTrackProximity(lat, lng, trainId) {
             const route = routeMatrix[trainId] || defaultStations;
             let validCoords = [];
@@ -334,7 +340,7 @@
                 if (stationCoords[st]) validCoords.push(stationCoords[st]);
             });
             
-            if (validCoords.length < 2) return true; 
+            if (validCoords.length < 2) return true; // Failsafe if route isn't completely mapped in coords
             
             let minDistance = Infinity;
             for (let i = 0; i < validCoords.length - 1; i++) {
@@ -346,7 +352,7 @@
                 let dist = getHaversine(lat, lng, projY, projX);
                 if (dist < minDistance) minDistance = dist;
             }
-            return minDistance <= 15.0; 
+            return minDistance <= 15.0; // 15km Track Buffer
         }
 
         async function requestWakeLock() {
@@ -373,7 +379,7 @@
             
             document.getElementById('gate-screen').style.display = 'none';
             document.getElementById('app-shell').style.display = 'flex';
-            document.getElementById('auxPanel').style.display = 'block'; 
+            document.getElementById('auxPanel').style.display = 'block'; // Show the new unified panel
             
             if (mode === 'broadcast') {
                 document.getElementById('bPanel').style.display = 'block';
@@ -396,6 +402,7 @@
             
             for(let id in markers) map.removeLayer(markers[id]);
             
+            // HIGHLANDER LOGIC: Get latest ping per train
             const latestByTrain = {};
             for(let k in globalDbData) {
                 const p = globalDbData[k];
@@ -412,6 +419,7 @@
                 if (filterVal !== "" && p.train !== filterVal) continue;
                 if (filterVal !== "") checkGeofence(p.lat, p.lng);
                 
+                // GHOST LOGIC: 3 hour persistence
                 if(diffMs < 10800000) { 
                     let statusUI = diffMins < 2 ? `<span style="color:#00ff88;">● Live Now</span>` : `<span style="color:#fbbf24;">● Last seen ${diffMins} mins ago</span>`;
                     markers[trainId] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
@@ -426,17 +434,7 @@
         }
 
         function loadMap() {
-            // --- NEW: BANGLADESH BORDERS LOCK ---
-            // Defines a strict geographical box over Bangladesh to prevent panning into the ocean/world map.
-            const bdBounds = L.latLngBounds([20.0, 87.5], [27.0, 93.0]);
-
-            map = L.map('map', {
-                zoomControl: false,
-                maxBounds: bdBounds,         // Locks panning to Bangladesh
-                maxBoundsViscosity: 1.0,     // Makes the borders solid, preventing elastic bounce outside
-                minZoom: 7                   // Prevents the user from zooming too far out
-            }).setView([23.8103, 90.4125], 7);
-            
+            map = L.map('map', {zoomControl: false}).setView([23.8103, 90.4125], 7);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
             L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.6 }).addTo(map);
             db.ref('active_trains').on('value', snap => {
@@ -453,6 +451,7 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); 
         }
 
+        // --- NEW: ETA CALCULATION LOGIC ---
         function calculateETA() {
             let dest = document.getElementById("etaStation").value;
             if(!dest) { alert("⚠️ Please select your Target Destination first."); return; }
@@ -465,6 +464,7 @@
             document.getElementById('etaDisplay').innerText = `${timeInMinutes} MINS`;
         }
 
+        // --- NEW: SOS GEO-BEACON LOGIC ---
         function activateRealSOS() {
             let trainDrop = document.getElementById("tSelect");
             let train = (trainDrop && trainDrop.value) ? trainDrop.value.replace(/_/g, ' ') : "Unknown Train";
@@ -507,10 +507,11 @@
                     const cLng = pos.coords.longitude;
                     const now = Date.now();
 
+                    // --- ANTI-SPOOFING: TRACK PROXIMITY CHECK + SEEK & DESTROY ---
                     const isOnTrack = verifyTrackProximity(cLat, cLng, train);
                     if (!isOnTrack) {
                         alert("🚨 FALSE ALARM DETECTED: You are broadcasting from outside the designated railway tracks for this train. Transmission halted and marker erased.");
-                        db.ref('active_trains/' + uName).remove(); 
+                        db.ref('active_trains/' + uName).remove(); // Seek and Destroy the fake ping
                         toggleTelemetry(); 
                         return;
                     }
@@ -519,6 +520,7 @@
                     const cHdg = Math.round(pos.coords.heading || 0);
                     checkGeofence(cLat, cLng);
 
+                    // --- ANTI-SPOOFING: IMPOSSIBLE SPEED JUMP ---
                     if (lastLat && lastTs) {
                         const distKm = getHaversine(lastLat, lastLng, cLat, cLng);
                         const timeHr = (now - lastTs) / 3600000;
