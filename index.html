@@ -3,294 +3,495 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>H.O.L.M.E.S. Command Center | Transit Radar</title>
+    <meta name="theme-color" content="#182825">
+    <title>Bangladesh Railway | Ultimate Command Center</title>
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #0d0d0d;
-            color: #00ffcc;
-            font-family: 'Courier New', Courier, monospace;
+        :root { 
+            --npf-base: #182825; --npf-action: #016fb9; 
+            --npf-accent: #22ade1; --npf-alert: #F42A41;
+            --oled-black: #000000; --text-light: #f8fafc;
         }
-        header {
-            background-color: #1a1a1a;
-            padding: 15px;
-            text-align: center;
-            border-bottom: 2px solid #ff4d4d;
-            box-shadow: 0 4px 8px rgba(255, 77, 77, 0.2);
-        }
-        .title {
-            font-weight: bold; 
-            font-size: 18px; 
-            letter-spacing: 2px;
-            color: #ff4d4d;
-        }
-        .container {
-            padding: 15px;
-            max-width: 600px;
-            margin: auto;
-        }
-        #map {
-            height: 250px;
-            width: 100%;
-            border: 2px solid #333;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .panel {
-            background: rgba(30, 30, 30, 0.8);
-            border: 1px solid #444;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .panel-emergency {
-            background: rgba(42, 8, 8, 0.9);
-            border: 1px solid #ff4d4d;
-        }
-        h4 {
-            margin-top: 0;
-            color: #fff;
-            border-bottom: 1px solid #555;
-            padding-bottom: 5px;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            font-weight: bold;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-family: inherit;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: 0.3s;
-        }
-        .btn-primary { background: #007acc; color: white; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-warning { background: #e69900; color: white; }
-        .btn-danger { background: #ff4d4d; color: white; }
-        .btn-calc { background: #8e44ad; color: white; }
         
-        button:active { transform: scale(0.98); }
-        select, input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            background: #222;
-            color: #00ffcc;
-            border: 1px solid #444;
-            border-radius: 4px;
-            font-family: inherit;
-            box-sizing: border-box;
-            margin-bottom: 10px;
+        body, html { 
+            margin: 0; padding: 0; height: 100dvh; min-height: -webkit-fill-available;
+            font-family: 'Inter', sans-serif; background: var(--oled-black); 
+            color: var(--text-light); overflow: hidden; 
         }
-        .telemetry-data {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            color: #aaa;
-            margin-bottom: 10px;
+        
+        #gate-screen { position: fixed; inset: 0; z-index: 9999; background: var(--oled-black); display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .gate-card { background: var(--npf-base); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; border-top: 4px solid var(--npf-action); box-shadow: 0 10px 30px rgba(1, 111, 185, 0.2); }
+        .gate-input { width: 100%; padding: 14px; margin-bottom: 20px; background: var(--oled-black); border: 1px solid #334; color: white; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        .btn-gate { width: 100%; padding: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; transition: 0.3s; }
+        .btn-track { background: var(--npf-action); color: white; }
+        .btn-broadcast { background: transparent; color: var(--npf-accent); border: 2px solid var(--npf-accent); }
+        
+        #app-shell { display: none; flex-direction: column; height: 100dvh; min-height: -webkit-fill-available; }
+        .header { padding: 12px 20px; background: var(--npf-base); border-bottom: 2px solid var(--npf-action); display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
+        
+        .alarm-bar { background: #0f172a; padding: 8px 20px; border-bottom: 1px solid #334; display: flex; align-items: center; z-index: 1000; }
+        .alarm-bar select { background: transparent; border: none; color: #fbbf24; font-weight: bold; font-size: 12px; width: 100%; outline: none; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        #map { flex-grow: 1; width: 100%; z-index: 1; background: var(--oled-black); min-height: 20vh; }
+        
+        .panel { 
+            display: none; background: var(--npf-base); padding: 15px; padding-bottom: 25px; 
+            border-top: 2px solid var(--npf-accent); z-index: 1000; max-height: 45dvh; overflow-y: auto; 
         }
-        .telemetry-data span { color: #00ffcc; font-weight: bold; }
-        .eta-box {
-            background: #111;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px dashed #00ffcc;
-            text-align: center;
-            font-size: 15px;
-            color: #fff;
-            margin-top: 5px;
-        }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        
+        select { background: var(--oled-black); border: 1px solid #445; color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 13px; box-sizing: border-box; }
+        select:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-action { width: 100%; padding: 16px; background: var(--npf-action); color: white; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; flex-shrink: 0; }
+        .btn-action.active { background: var(--npf-alert); }
     </style>
 </head>
 <body>
 
-    <header>
-        <span class="title">H.O.L.M.E.S. COMMAND</span><br>
-        <span style="font-size: 12px; color: #888;">Decentralized Transit Radar Network</span>
-    </header>
-
-    <div class="container">
-        
-        <div id="map"></div>
-
-        <div class="panel">
-            <h4>📋 MISSION PARAMETERS</h4>
-            <label style="font-size: 12px; color: #aaa;">Current Train:</label>
-            <select id="trainSelector">
-                <option value="">-- Select Active Train --</option>
-            </select>
-
-            <label style="font-size: 12px; color: #aaa;">Target Destination:</label>
-            <select id="stationSelector">
-                <option value="">-- Select Destination Station --</option>
-            </select>
+    <div id="gate-screen">
+        <div class="gate-card">
+            <h2 style="color:var(--text-light); margin-top:0; margin-bottom:5px;">বাংলাদেশ রেলওয়ে</h2>
+            <p style="color:var(--npf-accent); font-size:12px; margin-bottom:25px; text-transform: uppercase;">Aerospace Telemetry & Radar</p>
+            <input type="text" id="pName" class="gate-input" placeholder="Passenger Name / ID">
+            <button class="btn-gate btn-track" onclick="initApp('track')">I WANT TO TRACK</button>
+            <button class="btn-gate btn-broadcast" onclick="initApp('broadcast')">I AM BROADCASTING (PROBE)</button>
         </div>
-
-        <div class="panel">
-            <h4>🛰️ SYSTEM TELEMETRY & ETA</h4>
-            <div class="telemetry-data">
-                <p>SPD: <span id="speed">0 km/h</span></p>
-                <p>ALT: <span id="alt">0 m</span></p>
-                <p>HDG: <span id="hdg">N/A</span></p>
-            </div>
-            
-            <div class="eta-box">
-                TARGET ETA: <span id="etaDisplay" style="color:#ffcc00; font-weight:bold;">-- MINS</span>
-            </div>
-
-            <button class="btn-calc" onclick="calculateETA()">CALCULATE TIME TO DESTINATION</button>
-            <button class="btn-success" onclick="toggleBroadcast()">INITIATE RADAR BROADCAST</button>
-        </div>
-
-        <div class="panel">
-            <h4>⏰ GEOFENCED WAKE-UP ALARM</h4>
-            <p style="font-size: 11px; color: #888; margin-top:0;">Triggers a heavy hardware vibration at a 5km perimeter of your Target Destination.</p>
-            <button class="btn-warning" onclick="setWakeUpAlarm()">ACTIVATE 5KM PERIMETER ALARM</button>
-        </div>
-
-        <div class="panel panel-emergency">
-            <h4 style="color: #ff4d4d; border-bottom: 1px solid #ff4d4d; text-align: center;">🚨 EMERGENCY & SOCIAL PROTOCOLS</h4>
-            
-            <button class="btn-danger" onclick="activateRealSOS()" style="margin-bottom: 15px;">
-                BROADCAST SOS GEO-BEACON
-            </button>
-
-            <button class="btn-warning" onclick="reportCrowdDensity()">
-                REPORT STATION CROWD DENSITY
-            </button>
-        </div>
-
     </div>
 
+    <div id="app-shell">
+        <header class="header">
+            <div style="display:flex; flex-direction:column;">
+                <span style="font-weight:bold; font-size:15px; letter-spacing: 1px;">BNDA COMMAND</span>
+                <span id="sys-status" style="font-size:11px; color:var(--npf-accent);">Mode: Observer</span>
+            </div>
+            <div style="text-align: right;">
+                <div id="live-kmh" style="font-weight:900; color:var(--text-light); font-size: 22px; line-height: 1;">0 KM/H</div>
+                <div style="font-size: 10px; color: var(--npf-accent); margin-top: 4px; font-family: monospace;">ALT: <span id="live-alt">0</span>m | HDG: <span id="live-hdg">0</span>°</div>
+            </div>
+        </header>
+
+        <div class="alarm-bar">
+            <select id="alarmSelect" onchange="setAlarm()">
+                <option value="">🔔 SET WAKE-UP ALARM (5KM RADIUS) --</option>
+            </select>
+        </div>
+
+        <div id="map"></div>
+
+        <div class="panel" id="tPanel">
+            <div style="font-size:11px; color:var(--npf-accent); margin-bottom:8px; text-transform:uppercase; font-weight:bold;">Live Radar Filter</div>
+            <div class="grid">
+                <select id="fSelect" onchange="applyFilter()"></select> </div>
+        </div>
+
+        <div class="panel" id="bPanel">
+            <div class="grid">
+                <select id="tSelect" onchange="updateStationRoute()"></select> </div>
+            <div class="grid">
+                <select id="tStation" disabled>
+                    <option value="Unknown">-- Awaiting Train Selection --</option>
+                </select>
+            </div>
+            <div class="grid-2">
+                <select id="tCrowd">
+                    <option value="Unknown">-- Crowd Level --</option>
+                    <option value="Empty">Empty</option>
+                    <option value="Light">Light</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Heavy">Heavy</option>
+                    <option value="Crush Capacity">Crush Capacity</option>
+                </select>
+                <select id="tSeat">
+                    <option value="Unknown">-- Availability --</option>
+                    <option value="Seats Available">Seats Available</option>
+                    <option value="Standing Room Only">Standing Room Only</option>
+                    <option value="No Standing Room">No Standing Room</option>
+                </select>
+            </div>
+            <button id="mBtn" class="btn-action" onclick="toggleTelemetry()">INITIATE BROADCAST</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
     <script>
-        // --- 0. THE MASSIVE DATABASE (TRAINS & STATIONS) ---
-        const trainDatabase = [
-            "Suborno Express (701/702)", "Mohanagar Godhuli (703/704)", "Ekota Express (705/706)", "Tista Express (707/708)", 
-            "Parabat Express (709/710)", "Upaban Express (739/740)", "Turna Express (741/742)", "Paharika Express (719/720)", 
-            "Jayantika Express (717/718)", "Udayan Express (723/724)", "Meghna Express (729/730)", "Agnibina Express (735/736)", 
-            "Egarosindhur Provati (737/738)", "Nilsagor Express (765/766)", "Kurigram Express (797/798)", "Panchagarh Express (793/794)", 
-            "Banalata Express (791/792)", "Silkcity Express (753/754)", "Madhumati Express (755/756)", "Chitra Express (761/762)", 
-            "Rupsha Express (727/728)", "Kapotaksha Express (715/716)", "Lalmoni Express (751/752)", "Rangpur Express (771/772)",
-            "Drutojan Express (757/758)", "Padma Express (759/760)", "Jamuna Express (745/746)", "Kishoreganj Express (781/782)",
-            "Sonar Bangla Express (787/788)", "Kapotaksha Express (715/716)", "Haor Express (777/778)", "Mohanagar Provati (703/704)",
-            "Kalni Express (773/774)", "Brahmaputra Express (743/744)", "Titumir Express (733/734)", "Simanta Express (747/748)"
-        ].sort();
-
-        const stationDatabase = [
-            "Dhaka (Kamalapur)", "Dhaka Airport", "Tongi", "Joydebpur", "Narsingdi", "Bhairab Bazar", "Ashuganj", 
-            "Brahmanbaria", "Akhaura", "Cumilla", "Laksam", "Feni", "Chattogram", "Sylhet", "Srimangal", "Kulaura", 
-            "Habiganj", "Rajshahi", "Ishwardi", "Natore", "Bogura", "Rangpur", "Dinajpur", "Panchagarh", "Khulna", 
-            "Jashore", "Chuadanga", "Kushtia", "Faridpur", "Rajbari", "Chandpur", "Noakhali", "Mymensingh", "Jamalpur", 
-            "Tangail", "Sirajganj", "Pabna", "Bhairab", "Saidpur", "Parbatipur", "Lalmonirhat", "Kurigram", "Gaibandha",
-            "Bogra", "Santahar", "Gopalganj", "Netrokona", "Kishoreganj", "Sunamganj"
-        ].sort();
-
-        // Populate Dropdowns on Load
-        window.onload = function() {
-            let trainSelect = document.getElementById("trainSelector");
-            let stationSelect = document.getElementById("stationSelector");
-
-            trainDatabase.forEach(train => {
-                let option = document.createElement("option");
-                option.text = train;
-                option.value = train;
-                trainSelect.add(option);
-            });
-
-            stationDatabase.forEach(station => {
-                let option = document.createElement("option");
-                option.text = station;
-                option.value = station;
-                stationSelect.add(option);
-            });
+        // --- MASSIVE COORDINATE DATABASE (80+ STATIONS) ---
+        const stationCoords = {
+            "Dhaka (Kamlapur)": {lat: 23.7275, lng: 90.4261}, "Dhaka": {lat: 23.7275, lng: 90.4261},
+            "Dhaka Airport": {lat: 23.8515, lng: 90.4073}, "Joydebpur": {lat: 24.0000, lng: 90.4250},
+            "Tangail": {lat: 24.2483, lng: 89.9202}, "B.B. Setu East": {lat: 24.3969, lng: 89.7894},
+            "S.M. Mansur Ali": {lat: 24.3986, lng: 89.6841}, "Jamtoil": {lat: 24.3833, lng: 89.6000},
+            "Ullapara": {lat: 24.3122, lng: 89.5442}, "Boral Bridge": {lat: 24.2230, lng: 89.4450},
+            "Chatmohar": {lat: 24.2186, lng: 89.2944}, "Ishurdi": {lat: 24.1278, lng: 89.0664},
+            "Ishurdi Bypass": {lat: 24.1360, lng: 89.0800}, "Abdulpur": {lat: 24.1864, lng: 88.9888},
+            "Rajshahi": {lat: 24.3733, lng: 88.5950}, "Natore": {lat: 24.4103, lng: 88.9858},
+            "Santahar": {lat: 24.7933, lng: 89.0433}, "Akkelpur": {lat: 24.9750, lng: 89.0181},
+            "Joypurhat": {lat: 25.0964, lng: 89.0222}, "Panchbibi": {lat: 25.1883, lng: 89.0200},
+            "Hili": {lat: 25.2850, lng: 88.9950}, "Phulbari": {lat: 25.4650, lng: 88.9483},
+            "Parbatipur": {lat: 25.6608, lng: 88.9169}, "Dinajpur": {lat: 25.6201, lng: 88.6358},
+            "Setabganj": {lat: 25.8000, lng: 88.4667}, "Pirganj": {lat: 25.8544, lng: 88.3614},
+            "Thakurgaon Road": {lat: 26.0333, lng: 88.4333}, "Ruhea": {lat: 26.1500, lng: 88.4500},
+            "Panchagarh": {lat: 26.3354, lng: 88.5558}, "Saidpur": {lat: 25.7772, lng: 88.8911},
+            "Nilphamari": {lat: 25.9389, lng: 88.8436}, "Domar": {lat: 26.1000, lng: 88.8333},
+            "Chilahati": {lat: 26.2972, lng: 88.7611}, "Bogura": {lat: 24.8481, lng: 89.3730},
+            "Sonatola": {lat: 24.9667, lng: 89.5500}, "Bonarpara": {lat: 25.2167, lng: 89.5333},
+            "Gaibandha": {lat: 25.3286, lng: 89.5414}, "Bamondanga": {lat: 25.5667, lng: 89.4333},
+            "Pirgachha": {lat: 25.5833, lng: 89.4000}, "Kaunia": {lat: 25.7667, lng: 89.4167},
+            "Kurigram": {lat: 25.8083, lng: 89.6500}, "Rangpur": {lat: 25.7439, lng: 89.2752},
+            "Lalmonirhat": {lat: 25.9126, lng: 89.4442}, "Hardinge Bridge": {lat: 24.0667, lng: 89.0333},
+            "Poradah": {lat: 23.9000, lng: 88.9833}, "Kushtia": {lat: 23.9011, lng: 89.1211},
+            "Chuadanga": {lat: 23.6400, lng: 88.8542}, "Darshana": {lat: 23.5333, lng: 88.8667},
+            "Kotchandpur": {lat: 23.3833, lng: 89.0167}, "Jessore": {lat: 23.1664, lng: 89.2081},
+            "Noapara": {lat: 23.0167, lng: 89.4000}, "Khulna": {lat: 22.8098, lng: 89.5645},
+            "Bhairab Bazar": {lat: 24.0450, lng: 90.9850}, "Ashuganj": {lat: 24.0381, lng: 91.0028},
+            "Brahmanbaria": {lat: 23.9744, lng: 91.1122}, "Akhaura": {lat: 23.8752, lng: 91.2133},
+            "Comilla": {lat: 23.4589, lng: 91.1819}, "Laksam": {lat: 23.2389, lng: 91.1167},
+            "Feni": {lat: 23.0118, lng: 91.3995}, "Chittagong": {lat: 22.3333, lng: 91.8333},
+            "Cox's Bazar": {lat: 21.4339, lng: 92.0088}, "Narsingdi": {lat: 23.9229, lng: 90.7163},
+            "Natherpetua": {lat: 23.1333, lng: 91.0667}, "Sonaimuri": {lat: 23.0500, lng: 91.1000},
+            "Bajra": {lat: 22.9833, lng: 91.1000}, "Chowmuhani": {lat: 22.9467, lng: 91.1067},
+            "Maijdee Court": {lat: 22.8667, lng: 91.1000}, "Noakhali": {lat: 22.8683, lng: 91.0967},
+            "Azampur": {lat: 23.9333, lng: 91.2500}, "Mukundapur": {lat: 24.0333, lng: 91.2667},
+            "Harashpur": {lat: 24.0833, lng: 91.2833}, "Shaistaganj": {lat: 24.2833, lng: 91.3833},
+            "Srimangal": {lat: 24.3065, lng: 91.7296}, "Bhanugach": {lat: 24.3500, lng: 91.8000},
+            "Shamshernagar": {lat: 24.4000, lng: 91.9000}, "Kulaura": {lat: 24.5333, lng: 92.0333},
+            "Baramchal": {lat: 24.6000, lng: 91.9833}, "Maijgaon": {lat: 24.7000, lng: 91.9500},
+            "Sylhet": {lat: 24.8872, lng: 91.8687}, "Gafargaon": {lat: 24.4167, lng: 90.5500},
+            "Mymensingh": {lat: 24.7471, lng: 90.4203}, "Nandina": {lat: 24.8500, lng: 90.0500},
+            "Jamalpur": {lat: 24.9167, lng: 89.9500}, "Melandah Bazar": {lat: 24.9667, lng: 89.8333},
+            "Islampur Bazar": {lat: 25.0833, lng: 89.7833}, "Dewanganj Bazar": {lat: 25.1500, lng: 89.7667},
+            "Methikanda": {lat: 23.9500, lng: 90.8167}, "Khanabari": {lat: 23.9833, lng: 90.8833},
+            "Kuliarchar": {lat: 24.1500, lng: 90.9000}, "Bajitpur": {lat: 24.2167, lng: 90.9500},
+            "Sararchar": {lat: 24.2500, lng: 90.8833}, "Manikkhali": {lat: 24.3167, lng: 90.8500},
+            "Gachihata": {lat: 24.3667, lng: 90.8167}, "Kishoreganj": {lat: 24.4333, lng: 90.7833},
+            "Gouripur": {lat: 24.7500, lng: 90.5667}, "Shyamganj": {lat: 24.8333, lng: 90.6333},
+            "Netrokona": {lat: 24.8833, lng: 90.7333}, "Thakurkrok": {lat: 24.8833, lng: 90.8167},
+            "Barhatta": {lat: 24.8833, lng: 90.8833}, "Mohanganj": {lat: 24.8667, lng: 90.9667},
+            "Nangalkot": {lat: 23.1333, lng: 91.1833}
         };
 
-        // --- 1. INITIALIZE RADAR MAP (RESTORED DARK THEME) ---
-        var map = L.map('map').setView([23.6850, 90.3563], 6);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap, © CARTO'
-        }).addTo(map);
-
-        // --- 2. BROADCAST & ETA LOGIC ---
-        function toggleBroadcast() {
-            let train = document.getElementById("trainSelector").value;
-            if(!train) { alert("⚠️ Please select your Current Train from Mission Parameters first."); return; }
-            
-            alert(`📡 Linking ${train} to H.O.L.M.E.S. Network...\n\n✅ 15km Track Proximity Validation Passed.\n\n🛰️ Broadcasting live telemetry.`);
-            document.getElementById('speed').innerText = "72 km/h";
-            document.getElementById('alt').innerText = "14 m";
-            document.getElementById('hdg').innerText = "315° NW";
+        // Populate Alarm Dropdown dynamically
+        const alarmSelect = document.getElementById("alarmSelect");
+        for (let station in stationCoords) {
+            let opt = document.createElement("option");
+            opt.value = station; opt.text = `🔔 Wake me up at ${station}`;
+            alarmSelect.appendChild(opt);
         }
 
-        function calculateETA() {
-            let dest = document.getElementById("stationSelector").value;
-            if(!dest) { alert("⚠️ Please select your Target Destination first."); return; }
+        // --- MASSIVE DYNAMIC ROUTE MATRIX (ALL INTERCITY TRAINS) ---
+        const routeMatrix = {
+            "701-702_Subarna": ["Dhaka", "Dhaka Airport", "Chittagong"],
+            "787-788_Sonar_Bangla": ["Dhaka", "Dhaka Airport", "Chittagong"],
+            "703-704_Mohanagar_Provati": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
+            "721-722_Mohanagar_Express": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
+            "741-742_Turna": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
+            "813-814_Coxs_Bazar": ["Dhaka", "Dhaka Airport", "Chittagong", "Cox's Bazar"],
+            "815-816_Parjotak": ["Dhaka", "Dhaka Airport", "Chittagong", "Cox's Bazar"],
+            "67-68_Chattala": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
             
-            // Simulate ETA Calculation based on a randomized distance and 72km/h speed
-            let simulatedDistance = Math.floor(Math.random() * 250) + 20; // Random km between 20 and 270
-            let speed = 72; // km/h
-            let timeInHours = simulatedDistance / speed;
-            let timeInMinutes = Math.round(timeInHours * 60);
+            "711-712_Upukol": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
+            "11-12_Noakhali": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
+            "709-710_Parabat": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Azampur", "Akhaura", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
+            "717-718_Joyantika": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Mukundapur", "Harashpur", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Maijgaon", "Sylhet"],
+            "739-740_Upaban": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Shaistaganj", "Srimangal", "Bhanugach", "Kulaura", "Maijgaon", "Sylhet"],
+            "773-774_Kalani": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Shaistaganj", "Srimangal", "Bhanugach", "Kulaura", "Maijgaon", "Sylhet"],
+            
+            "705-706_Ekota": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Setabganj", "Pirganj", "Thakurgaon Road", "Ruhea", "Panchagarh"],
+            "757-758_Drutojan": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Setabganj", "Pirganj", "Thakurgaon Road", "Ruhea", "Panchagarh"],
+            "765-766_Nilsagar": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
+            "771-772_Rangpur": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Bogura", "Sonatola", "Bonarpara", "Gaibandha", "Bamondanga", "Pirgachha", "Kaunia", "Kurigram", "Rangpur"],
+            "751-752_Lalmoni": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Bogura", "Sonatola", "Bonarpara", "Gaibandha", "Bamondanga", "Pirgachha", "Kaunia", "Lalmonirhat"],
+            "775-776_Sirajganj": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Jamtoil"],
+            
+            "753-754_Silk_City": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
+            "759-760_Padma": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
+            "769-770_Dhumketue": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
+            "725-726_Sundarban": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi", "Hardinge Bridge", "Poradah", "Kushtia", "Chuadanga", "Darshana", "Kotchandpur", "Jessore", "Noapara", "Khulna"],
+            "763-764_Chittra": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi", "Hardinge Bridge", "Poradah", "Kushtia", "Chuadanga", "Darshana", "Kotchandpur", "Jessore", "Noapara", "Khulna"],
+            
+            "707-708_Tista": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Melandah Bazar", "Islampur Bazar", "Dewanganj Bazar"],
+            "735-736_Agnibina": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Bausi", "Tarakandi"],
+            "743-744_Brahmaputra": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Melandah Bazar", "Islampur Bazar", "Dewanganj Bazar"],
+            "745-746_Jamuna": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Bausi", "Tarakandi"],
+            "737-738_Egarosindhur_Provati": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
+            "749-750_Egarosindhur_Goduli": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
+            "781-782_Kishoreganj": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
+            "777-778_Haor": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Gouripur", "Shyamganj", "Netrokona", "Thakurkrok", "Barhatta", "Mohanganj"],
+            
+            "719-720_Paharika": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Comilla", "Akhaura", "Harashpur", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
+            "723-724_Uddayan": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Comilla", "Akhaura", "Harashpur", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
+            "729-730_Meghna": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
+            "785-786_Bijoy": ["Chittagong", "Feni", "Laksam", "Comilla", "Akhaura", "Bhairab Bazar", "Mymensingh", "Jamalpur"],
+            "727-728_Rupsha": ["Khulna", "Noapara", "Jessore", "Kotchandpur", "Darshana", "Chuadanga", "Poradah", "Bheramara", "Ishurdi", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
+            "731-732_Barendra": ["Rajshahi", "Abdulpur", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
+            "733-734_Titumir": ["Rajshahi", "Abdulpur", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
+            "715-716_Kapotaskh": ["Khulna", "Noapara", "Jessore", "Kotchandpur", "Darshana", "Chuadanga", "Poradah", "Bheramara", "Ishurdi", "Abdulpur", "Rajshahi"],
+            "761-762_Sagardari": ["Khulna", "Noapara", "Jessore", "Kotchandpur", "Darshana", "Chuadanga", "Poradah", "Bheramara", "Ishurdi", "Abdulpur", "Rajshahi"],
+            
+            "3107-3110_Moitree": ["Dhaka", "Ishurdi", "Darshana"],
+            "1-2_Dhaka_Mail": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
+            "3-4_Karnaphuli": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"]
+        };
 
-            alert(`⏱️ TRAJECTORY CALCULATED\n\nDestination: ${dest}\nDistance: ~${simulatedDistance} km\nConstant Speed: ${speed} km/h\n\nEstimated Time of Arrival: ${timeInMinutes} minutes.`);
-            document.getElementById('etaDisplay').innerText = `${timeInMinutes} MINS`;
+        const defaultStations = ["Dhaka", "Dhaka Airport", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Comilla", "Noakhali", "Joydebpur", "Parbatipur"];
+
+        // --- DYNAMIC HTML POPULATION FOR DROPDOWNS ---
+        function populateTrainDropdowns() {
+            const fSelect = document.getElementById("fSelect");
+            const tSelect = document.getElementById("tSelect");
+            
+            let defaultOptF = document.createElement("option"); defaultOptF.value = ""; defaultOptF.text = "-- SHOW ALL ACTIVE TRAINS --";
+            let defaultOptT = document.createElement("option"); defaultOptT.value = ""; defaultOptT.text = "-- SELECT YOUR TRAIN --";
+            fSelect.appendChild(defaultOptF); tSelect.appendChild(defaultOptT);
+            
+            for (let train in routeMatrix) {
+                let optF = document.createElement("option"); optF.value = train; optF.text = train.replace(/_/g, ' ');
+                let optT = document.createElement("option"); optT.value = train; optT.text = train.replace(/_/g, ' ');
+                fSelect.appendChild(optF); tSelect.appendChild(optT);
+            }
+        }
+        
+        populateTrainDropdowns();
+
+        function updateStationRoute() {
+            const trainSelect = document.getElementById("tSelect").value;
+            const stationSelect = document.getElementById("tStation");
+            stationSelect.innerHTML = '<option value="Unknown">-- Select Current Station --</option>';
+            if (trainSelect === "") { stationSelect.disabled = true; return; }
+            stationSelect.disabled = false;
+            let routeArray = routeMatrix[trainSelect] || defaultStations;
+            routeArray.forEach(station => {
+                let option = document.createElement("option");
+                option.value = station; option.text = station;
+                stationSelect.appendChild(option);
+            });
         }
 
-        // --- 3. GEOFENCE WAKE-UP LOGIC ---
-        function setWakeUpAlarm() {
-            let dest = document.getElementById("stationSelector").value;
-            if(!dest) { alert("⚠️ Select your Target Destination in Mission Parameters first."); return; }
-            
-            alert(`⏰ Geofence Active!\n\nTarget: ${dest}\n\nYour device is now monitoring GPS. The hardware alarm will trigger within a 5km perimeter of ${dest}. Sleep safely.`);
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g",
+            authDomain: "holmes-train-tracker.firebaseapp.com",
+            projectId: "holmes-train-tracker",
+            databaseURL: "https://holmes-train-tracker-default-rtdb.firebaseio.com/",
+            appId: "1:268759875143:web:00031813d14107dfe03b62"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        let uName = "";
+        let wakeLock = null;
+        let globalDbData = {}; 
+        let targetAlarmStation = "";
+        let isAlarmTriggered = false;
+
+        function setAlarm() {
+            targetAlarmStation = document.getElementById("alarmSelect").value;
+            isAlarmTriggered = false; 
         }
 
-        // --- 4. AUTHENTIC EMERGENCY SOS LOGIC ---
-        function activateRealSOS() {
-            let train = document.getElementById("trainSelector").value;
-            if(!train) { alert("⚠️ Select your Train in Mission Parameters first so rescue teams know what to look for."); return; }
+        function checkGeofence(currentLat, currentLng) {
+            if (!targetAlarmStation || isAlarmTriggered) return;
+            const target = stationCoords[targetAlarmStation];
+            if (!target) return;
 
-            let compartment = prompt(`🚨 SOS GEO-BEACON 🚨\n\nTrain: ${train}\n\nEnter your Compartment & Seat (e.g., Cha-42):`);
-            if(!compartment) return; 
-
-            if (navigator.geolocation) {
-                alert("Acquiring exact GPS coordinates. Please wait...");
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    let lat = position.coords.latitude;
-                    let lon = position.coords.longitude;
-                    
-                    let mapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
-                    let emergencyMessage = `🚨 EMERGENCY! I need help. I am on the ${train}, Compartment: ${compartment}. My live location is here: ${mapsLink}`;
-                    
-                    let whatsappUrl = `https://wa.me/?text=${encodeURIComponent(emergencyMessage)}`;
-                    window.open(whatsappUrl, '_blank');
-                    
-                }, function(error) {
-                     alert("🔴 GPS Error: Cannot acquire location. Please ensure location services are turned on.");
-                }, { enableHighAccuracy: true });
-            } else {
-                alert("🔴 Your browser does not support Geolocation.");
+            const distKm = getHaversine(currentLat, currentLng, target.lat, target.lng);
+            if (distKm <= 5.0) {
+                isAlarmTriggered = true;
+                if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 2000]);
+                alert(`⚠️ WAKE UP ALERT!\nThe train is within ${distKm.toFixed(1)} km of ${targetAlarmStation}. Prepare to disembark.`);
+                document.getElementById("alarmSelect").style.color = "var(--npf-alert)";
             }
         }
 
-        // --- 5. STATION CROWD DENSITY LOGIC ---
-        function reportCrowdDensity() {
-            let station = document.getElementById("stationSelector").value;
-            let targetStation = station ? station : prompt("Enter the Station Name you are currently at:");
-            if (!targetStation) return;
+        // --- THE GEOSPATIAL CROSS-TRACK VALIDATOR ---
+        function verifyTrackProximity(lat, lng, trainId) {
+            const route = routeMatrix[trainId] || defaultStations;
+            let validCoords = [];
             
-            let level = prompt(`What is the crowd density at ${targetStation}?\n1 = Low\n2 = Medium\n3 = Stampede Risk`);
+            route.forEach(st => {
+                if (stationCoords[st]) validCoords.push(stationCoords[st]);
+            });
             
-            if (level === "1" || level === "2" || level === "3") {
-                alert(`✅ DATA LOGGED: ${targetStation} recorded as Density Level ${level}.\n\nThis data is now updating the national H.O.L.M.E.S. crowd heatmap.`);
+            if (validCoords.length < 2) return true; // Failsafe if route isn't completely mapped in coords
+            
+            let minDistance = Infinity;
+            for (let i = 0; i < validCoords.length - 1; i++) {
+                let p1 = validCoords[i]; let p2 = validCoords[i+1];
+                let dx = p2.lng - p1.lng; let dy = p2.lat - p1.lat;
+                let len2 = dx * dx + dy * dy;
+                let t = Math.max(0, Math.min(1, ((lng - p1.lng) * dx + (lat - p1.lat) * dy) / len2));
+                let projX = p1.lng + t * dx; let projY = p1.lat + t * dy;
+                let dist = getHaversine(lat, lng, projY, projX);
+                if (dist < minDistance) minDistance = dist;
+            }
+            return minDistance <= 15.0; // 15km Track Buffer
+        }
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    document.getElementById('sys-status').innerText = "Wake Lock: Active (Probe)";
+                    wakeLock.addEventListener('release', () => {
+                        if (wID) document.getElementById('sys-status').innerText = "Wake Lock: Released!";
+                    });
+                }
+            } catch (err) { console.error(`Wake Lock Error: ${err.message}`); }
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible' && wID) {
+                await requestWakeLock();
+            }
+        });
+
+        function initApp(mode) {
+            uName = document.getElementById('pName').value;
+            if(!uName) return alert("Verification Required: Enter your Name or Ticket ID");
+            
+            document.getElementById('gate-screen').style.display = 'none';
+            document.getElementById('app-shell').style.display = 'flex';
+            
+            if (mode === 'broadcast') {
+                document.getElementById('bPanel').style.display = 'block';
+                document.getElementById('tPanel').style.display = 'none';
+                document.getElementById('sys-status').innerText = "Mode: Probe (Ready)";
             } else {
-                alert("Invalid input. Please enter 1, 2, or 3.");
+                document.getElementById('bPanel').style.display = 'none';
+                document.getElementById('tPanel').style.display = 'block';
+                document.getElementById('sys-status').innerText = "Mode: Detector (Tracking)";
+            }
+            setTimeout(() => { loadMap(); }, 200);
+        }
+
+        let map, markers = {};
+        function applyFilter() { renderMarkers(); }
+
+        function renderMarkers() {
+            const filterVal = document.getElementById('fSelect') ? document.getElementById('fSelect').value : "";
+            const now = Date.now();
+            
+            for(let id in markers) map.removeLayer(markers[id]);
+            
+            // HIGHLANDER LOGIC: Get latest ping per train
+            const latestByTrain = {};
+            for(let k in globalDbData) {
+                const p = globalDbData[k];
+                if (!latestByTrain[p.train] || p.ts > latestByTrain[p.train].ts) {
+                    latestByTrain[p.train] = p;
+                }
+            }
+            
+            for(let trainId in latestByTrain) {
+                const p = latestByTrain[trainId];
+                const diffMs = now - p.ts;
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                if (filterVal !== "" && p.train !== filterVal) continue;
+                if (filterVal !== "") checkGeofence(p.lat, p.lng);
+                
+                // GHOST LOGIC: 3 hour persistence
+                if(diffMs < 10800000) { 
+                    let statusUI = diffMins < 2 ? `<span style="color:#00ff88;">● Live Now</span>` : `<span style="color:#fbbf24;">● Last seen ${diffMins} mins ago</span>`;
+                    markers[trainId] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
+                        <b style="color:var(--npf-action); font-size:14px;">${p.train.replace(/_/g, ' ')}</b><br>
+                        Tracker: ${p.name}<br>Station: ${p.station}<br>
+                        Speed: <b>${p.speed} KM/H</b><br>
+                        Flight Data: Alt ${p.alt || 0}m | Hdg ${p.hdg || 0}°<br>
+                        Status: ${statusUI}
+                    `);
+                }
+            }
+        }
+
+        function loadMap() {
+            map = L.map('map', {zoomControl: false}).setView([23.8103, 90.4125], 7);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+            L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.6 }).addTo(map);
+            db.ref('active_trains').on('value', snap => {
+                globalDbData = snap.val() || {};
+                renderMarkers();
+            });
+        }
+
+        function getHaversine(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); 
+        }
+
+        let wID = null, lastLat = null, lastLng = null, lastTs = null, sLat = 0, sLng = 0; 
+
+        async function toggleTelemetry() {
+            const btn = document.getElementById('mBtn');
+            const train = document.getElementById('tSelect').value;
+            if(!train) return alert("Select a train designation to begin.");
+
+            if(!wID) {
+                await requestWakeLock();
+
+                wID = navigator.geolocation.watchPosition(pos => {
+                    const cLat = pos.coords.latitude;
+                    const cLng = pos.coords.longitude;
+                    const now = Date.now();
+
+                    // --- ANTI-SPOOFING: TRACK PROXIMITY CHECK + SEEK & DESTROY ---
+                    const isOnTrack = verifyTrackProximity(cLat, cLng, train);
+                    if (!isOnTrack) {
+                        alert("🚨 FALSE ALARM DETECTED: You are broadcasting from outside the designated railway tracks for this train. Transmission halted and marker erased.");
+                        db.ref('active_trains/' + uName).remove(); // Seek and Destroy the fake ping
+                        toggleTelemetry(); 
+                        return;
+                    }
+
+                    const cAlt = Math.round(pos.coords.altitude || 0);
+                    const cHdg = Math.round(pos.coords.heading || 0);
+                    checkGeofence(cLat, cLng);
+
+                    // --- ANTI-SPOOFING: IMPOSSIBLE SPEED JUMP ---
+                    if (lastLat && lastTs) {
+                        const distKm = getHaversine(lastLat, lastLng, cLat, cLng);
+                        const timeHr = (now - lastTs) / 3600000;
+                        if (timeHr > 0 && (distKm / timeHr) > 130) return; 
+                    }
+
+                    const alpha = 0.3;
+                    if (sLat === 0) { sLat = cLat; sLng = cLng; }
+                    sLat = (cLat * alpha) + (sLat * (1 - alpha));
+                    sLng = (cLng * alpha) + (sLng * (1 - alpha));
+                    lastLat = cLat; lastLng = cLng; lastTs = now;
+
+                    let speed = Math.round((pos.coords.speed || 0) * 3.6);
+                    document.getElementById('live-kmh').innerText = speed + " KM/H";
+                    document.getElementById('live-alt').innerText = cAlt;
+                    document.getElementById('live-hdg').innerText = cHdg;
+                    
+                    const payload = {
+                        name: uName, train: train, station: document.getElementById('tStation').value,
+                        crowd: document.getElementById('tCrowd').value, seat: document.getElementById('tSeat').value,
+                        lat: sLat, lng: sLng, speed: speed, alt: cAlt, hdg: cHdg, ts: now
+                    };
+
+                    const dateStr = new Date().toISOString().split('T')[0];
+                    db.ref(`raw_telemetry/${dateStr}/broadcasts/${uName}`).set(payload);
+                    db.ref('active_trains/' + uName).set(payload);
+                    
+                    btn.innerText = "HALT BROADCAST"; btn.classList.add('active');
+                }, (err) => alert("Geospatial Lock Failed: " + err.message), 
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+            } else {
+                navigator.geolocation.clearWatch(wID); wID = null;
+                if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
+                btn.innerText = "INITIATE BROADCAST"; btn.classList.remove('active');
+                document.getElementById('sys-status').innerText = "Mode: Probe (Standby)";
             }
         }
     </script>
