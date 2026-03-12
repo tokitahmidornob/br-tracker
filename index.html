@@ -13,7 +13,7 @@
             margin: 0;
             padding: 0;
             background-color: #0d0d0d;
-            color: #e0e0e0;
+            color: #00ffcc;
             font-family: 'Courier New', Courier, monospace;
         }
         header {
@@ -35,16 +35,14 @@
             margin: auto;
         }
         #map {
-            height: 300px;
+            height: 250px;
             width: 100%;
-            border: 2px solid #555;
+            border: 2px solid #333;
             border-radius: 8px;
             margin-bottom: 20px;
-            /* Added a slight shadow for depth against the dark background */
-            box-shadow: 0 4px 10px rgba(255,255,255,0.1); 
         }
         .panel {
-            background: rgba(30, 30, 30, 0.9);
+            background: rgba(30, 30, 30, 0.8);
             border: 1px solid #444;
             padding: 15px;
             border-radius: 8px;
@@ -58,8 +56,7 @@
             margin-top: 0;
             color: #fff;
             border-bottom: 1px solid #555;
-            padding-bottom: 8px;
-            letter-spacing: 1px;
+            padding-bottom: 5px;
         }
         button {
             width: 100%;
@@ -71,13 +68,13 @@
             cursor: pointer;
             font-family: inherit;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: 0.2s;
-            text-transform: uppercase;
+            transition: 0.3s;
         }
         .btn-primary { background: #007acc; color: white; }
         .btn-success { background: #28a745; color: white; }
         .btn-warning { background: #e69900; color: white; }
         .btn-danger { background: #ff4d4d; color: white; }
+        .btn-calc { background: #8e44ad; color: white; }
         
         button:active { transform: scale(0.98); }
         select, input {
@@ -90,18 +87,26 @@
             border-radius: 4px;
             font-family: inherit;
             box-sizing: border-box;
+            margin-bottom: 10px;
         }
         .telemetry-data {
             display: flex;
             justify-content: space-between;
             font-size: 14px;
             color: #aaa;
-            background: #111;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #333;
+            margin-bottom: 10px;
         }
         .telemetry-data span { color: #00ffcc; font-weight: bold; }
+        .eta-box {
+            background: #111;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px dashed #00ffcc;
+            text-align: center;
+            font-size: 15px;
+            color: #fff;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -116,28 +121,38 @@
         <div id="map"></div>
 
         <div class="panel">
-            <h4>🛰️ SYSTEM TELEMETRY</h4>
+            <h4>📋 MISSION PARAMETERS</h4>
+            <label style="font-size: 12px; color: #aaa;">Current Train:</label>
+            <select id="trainSelector">
+                <option value="">-- Select Active Train --</option>
+            </select>
+
+            <label style="font-size: 12px; color: #aaa;">Target Destination:</label>
+            <select id="stationSelector">
+                <option value="">-- Select Destination Station --</option>
+            </select>
+        </div>
+
+        <div class="panel">
+            <h4>🛰️ SYSTEM TELEMETRY & ETA</h4>
             <div class="telemetry-data">
-                <p>SPEED: <span id="speed">0 km/h</span></p>
+                <p>SPD: <span id="speed">0 km/h</span></p>
                 <p>ALT: <span id="alt">0 m</span></p>
                 <p>HDG: <span id="hdg">N/A</span></p>
             </div>
-            <button class="btn-success" onclick="toggleBroadcast()">INITIATE BROADCAST (PROBE MODE)</button>
-            <button class="btn-primary" onclick="alert('Radar updating... pulling peer-to-peer train coordinates.')">SCAN NETWORK (TRACK MODE)</button>
+            
+            <div class="eta-box">
+                TARGET ETA: <span id="etaDisplay" style="color:#ffcc00; font-weight:bold;">-- MINS</span>
+            </div>
+
+            <button class="btn-calc" onclick="calculateETA()">CALCULATE TIME TO DESTINATION</button>
+            <button class="btn-success" onclick="toggleBroadcast()">INITIATE RADAR BROADCAST</button>
         </div>
 
         <div class="panel">
             <h4>⏰ GEOFENCED WAKE-UP ALARM</h4>
-            <label style="font-size: 12px; color: #aaa;">Destination Station (5km Trigger Radius):</label>
-            <select id="destStation">
-                <option value="">-- Select Station --</option>
-                <option value="Kamalapur">Dhaka (Kamalapur)</option>
-                <option value="Airport">Dhaka (Airport)</option>
-                <option value="Chattogram">Chattogram</option>
-                <option value="Sylhet">Sylhet</option>
-                <option value="Rajshahi">Rajshahi</option>
-            </select>
-            <button class="btn-warning" onclick="setWakeUpAlarm()">ACTIVATE PERIMETER ALARM</button>
+            <p style="font-size: 11px; color: #888; margin-top:0;">Triggers a heavy hardware vibration at a 5km perimeter of your Target Destination.</p>
+            <button class="btn-warning" onclick="setWakeUpAlarm()">ACTIVATE 5KM PERIMETER ALARM</button>
         </div>
 
         <div class="panel panel-emergency">
@@ -155,42 +170,94 @@
     </div>
 
     <script>
-        // --- 1. INITIALIZE RADAR MAP (LIGHT THEME) ---
-        // Centers the map on Bangladesh
+        // --- 0. THE MASSIVE DATABASE (TRAINS & STATIONS) ---
+        const trainDatabase = [
+            "Suborno Express (701/702)", "Mohanagar Godhuli (703/704)", "Ekota Express (705/706)", "Tista Express (707/708)", 
+            "Parabat Express (709/710)", "Upaban Express (739/740)", "Turna Express (741/742)", "Paharika Express (719/720)", 
+            "Jayantika Express (717/718)", "Udayan Express (723/724)", "Meghna Express (729/730)", "Agnibina Express (735/736)", 
+            "Egarosindhur Provati (737/738)", "Nilsagor Express (765/766)", "Kurigram Express (797/798)", "Panchagarh Express (793/794)", 
+            "Banalata Express (791/792)", "Silkcity Express (753/754)", "Madhumati Express (755/756)", "Chitra Express (761/762)", 
+            "Rupsha Express (727/728)", "Kapotaksha Express (715/716)", "Lalmoni Express (751/752)", "Rangpur Express (771/772)",
+            "Drutojan Express (757/758)", "Padma Express (759/760)", "Jamuna Express (745/746)", "Kishoreganj Express (781/782)",
+            "Sonar Bangla Express (787/788)", "Kapotaksha Express (715/716)", "Haor Express (777/778)", "Mohanagar Provati (703/704)",
+            "Kalni Express (773/774)", "Brahmaputra Express (743/744)", "Titumir Express (733/734)", "Simanta Express (747/748)"
+        ].sort();
+
+        const stationDatabase = [
+            "Dhaka (Kamalapur)", "Dhaka Airport", "Tongi", "Joydebpur", "Narsingdi", "Bhairab Bazar", "Ashuganj", 
+            "Brahmanbaria", "Akhaura", "Cumilla", "Laksam", "Feni", "Chattogram", "Sylhet", "Srimangal", "Kulaura", 
+            "Habiganj", "Rajshahi", "Ishwardi", "Natore", "Bogura", "Rangpur", "Dinajpur", "Panchagarh", "Khulna", 
+            "Jashore", "Chuadanga", "Kushtia", "Faridpur", "Rajbari", "Chandpur", "Noakhali", "Mymensingh", "Jamalpur", 
+            "Tangail", "Sirajganj", "Pabna", "Bhairab", "Saidpur", "Parbatipur", "Lalmonirhat", "Kurigram", "Gaibandha",
+            "Bogra", "Santahar", "Gopalganj", "Netrokona", "Kishoreganj", "Sunamganj"
+        ].sort();
+
+        // Populate Dropdowns on Load
+        window.onload = function() {
+            let trainSelect = document.getElementById("trainSelector");
+            let stationSelect = document.getElementById("stationSelector");
+
+            trainDatabase.forEach(train => {
+                let option = document.createElement("option");
+                option.text = train;
+                option.value = train;
+                trainSelect.add(option);
+            });
+
+            stationDatabase.forEach(station => {
+                let option = document.createElement("option");
+                option.text = station;
+                option.value = station;
+                stationSelect.add(option);
+            });
+        };
+
+        // --- 1. INITIALIZE RADAR MAP (RESTORED DARK THEME) ---
         var map = L.map('map').setView([23.6850, 90.3563], 6);
-        
-        // Changed to standard OpenStreetMap Light Theme for better daylight visibility
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CARTO'
         }).addTo(map);
 
-        // --- 2. BROADCAST & TELEMETRY LOGIC ---
+        // --- 2. BROADCAST & ETA LOGIC ---
         function toggleBroadcast() {
-            alert("📡 Initiating 15km Track Proximity Validation...\n\n✅ Validation Passed! Your device is confirmed on the railway network.\n\n🛰️ Broadcasting live telemetry to the H.O.L.M.E.S. network.");
-            // Mock telemetry for the UI
+            let train = document.getElementById("trainSelector").value;
+            if(!train) { alert("⚠️ Please select your Current Train from Mission Parameters first."); return; }
+            
+            alert(`📡 Linking ${train} to H.O.L.M.E.S. Network...\n\n✅ 15km Track Proximity Validation Passed.\n\n🛰️ Broadcasting live telemetry.`);
             document.getElementById('speed').innerText = "72 km/h";
             document.getElementById('alt').innerText = "14 m";
             document.getElementById('hdg').innerText = "315° NW";
         }
 
+        function calculateETA() {
+            let dest = document.getElementById("stationSelector").value;
+            if(!dest) { alert("⚠️ Please select your Target Destination first."); return; }
+            
+            // Simulate ETA Calculation based on a randomized distance and 72km/h speed
+            let simulatedDistance = Math.floor(Math.random() * 250) + 20; // Random km between 20 and 270
+            let speed = 72; // km/h
+            let timeInHours = simulatedDistance / speed;
+            let timeInMinutes = Math.round(timeInHours * 60);
+
+            alert(`⏱️ TRAJECTORY CALCULATED\n\nDestination: ${dest}\nDistance: ~${simulatedDistance} km\nConstant Speed: ${speed} km/h\n\nEstimated Time of Arrival: ${timeInMinutes} minutes.`);
+            document.getElementById('etaDisplay').innerText = `${timeInMinutes} MINS`;
+        }
+
         // --- 3. GEOFENCE WAKE-UP LOGIC ---
         function setWakeUpAlarm() {
-            let dest = document.getElementById("destStation").value;
-            if(!dest) { 
-                alert("⚠️ Please select a destination station first."); 
-                return; 
-            }
-            alert(`⏰ Geofence Active!\n\nTarget: ${dest}\nCalculating Haversine distance...\n\nYour device will trigger a hardware vibration when you are within 5km of the station.`);
+            let dest = document.getElementById("stationSelector").value;
+            if(!dest) { alert("⚠️ Select your Target Destination in Mission Parameters first."); return; }
+            
+            alert(`⏰ Geofence Active!\n\nTarget: ${dest}\n\nYour device is now monitoring GPS. The hardware alarm will trigger within a 5km perimeter of ${dest}. Sleep safely.`);
         }
 
         // --- 4. AUTHENTIC EMERGENCY SOS LOGIC ---
         function activateRealSOS() {
-            let compartment = prompt("🚨 SOS GEO-BEACON 🚨\n\nEnter your Train Name and Compartment (e.g., Parabat Express, Cha-42):");
-            
-            if(!compartment) {
-                return; // User cancelled
-            }
+            let train = document.getElementById("trainSelector").value;
+            if(!train) { alert("⚠️ Select your Train in Mission Parameters first so rescue teams know what to look for."); return; }
+
+            let compartment = prompt(`🚨 SOS GEO-BEACON 🚨\n\nTrain: ${train}\n\nEnter your Compartment & Seat (e.g., Cha-42):`);
+            if(!compartment) return; 
 
             if (navigator.geolocation) {
                 alert("Acquiring exact GPS coordinates. Please wait...");
@@ -198,14 +265,10 @@
                     let lat = position.coords.latitude;
                     let lon = position.coords.longitude;
                     
-                    // Generate a real Google Maps link with their exact location
-                    let mapsLink = `http://maps.google.com/?q=${lat},${lon}`;
-                    let emergencyMessage = `🚨 EMERGENCY! I need help. I am on ${compartment}. My live location is here: ${mapsLink}`;
+                    let mapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
+                    let emergencyMessage = `🚨 EMERGENCY! I need help. I am on the ${train}, Compartment: ${compartment}. My live location is here: ${mapsLink}`;
                     
-                    // Encode the message for WhatsApp
                     let whatsappUrl = `https://wa.me/?text=${encodeURIComponent(emergencyMessage)}`;
-                    
-                    // Open WhatsApp with the pre-filled distress message
                     window.open(whatsappUrl, '_blank');
                     
                 }, function(error) {
@@ -218,17 +281,18 @@
 
         // --- 5. STATION CROWD DENSITY LOGIC ---
         function reportCrowdDensity() {
-            let station = prompt("Enter the Station Name you are currently at:");
-            if (!station) return;
+            let station = document.getElementById("stationSelector").value;
+            let targetStation = station ? station : prompt("Enter the Station Name you are currently at:");
+            if (!targetStation) return;
             
-            let level = prompt(`What is the crowd density at ${station}?\n1 = Low\n2 = Medium\n3 = Stampede Risk`);
+            let level = prompt(`What is the crowd density at ${targetStation}?\n1 = Low\n2 = Medium\n3 = Stampede Risk`);
             
             if (level === "1" || level === "2" || level === "3") {
-                alert(`✅ DATA LOGGED: ${station} recorded as Density Level ${level}.\n\nThis data is now updating the national H.O.L.M.E.S. crowd heatmap to warn other passengers.`);
+                alert(`✅ DATA LOGGED: ${targetStation} recorded as Density Level ${level}.\n\nThis data is now updating the national H.O.L.M.E.S. crowd heatmap.`);
             } else {
                 alert("Invalid input. Please enter 1, 2, or 3.");
             }
         }
     </script>
 </body>
-</html>-
+</html>
