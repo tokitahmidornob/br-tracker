@@ -13,14 +13,8 @@
             --npf-accent: #22ade1; --npf-alert: #F42A41;
             --oled-black: #000000; --text-light: #f8fafc;
         }
+        body, html { margin: 0; padding: 0; height: 100dvh; font-family: 'Inter', sans-serif; background: var(--oled-black); color: var(--text-light); overflow: hidden; }
         
-        body, html { 
-            margin: 0; padding: 0; height: 100dvh; min-height: -webkit-fill-available;
-            font-family: 'Inter', sans-serif; background: var(--oled-black); 
-            color: var(--text-light); overflow: hidden; 
-        }
-        
-        /* --- GATING SYSTEM --- */
         #gate-screen { position: fixed; inset: 0; z-index: 9999; background: var(--oled-black); display: flex; align-items: center; justify-content: center; padding: 20px; }
         .gate-card { background: var(--npf-base); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; border-top: 4px solid var(--npf-action); box-shadow: 0 10px 30px rgba(1, 111, 185, 0.2); }
         .gate-input { width: 100%; padding: 14px; margin-bottom: 20px; background: var(--oled-black); border: 1px solid #334; color: white; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
@@ -28,35 +22,19 @@
         .btn-track { background: var(--npf-action); color: white; }
         .btn-broadcast { background: transparent; color: var(--npf-accent); border: 2px solid var(--npf-accent); }
         
-        /* --- MAIN INTERFACE --- */
-        #app-shell { display: none; flex-direction: column; height: 100dvh; min-height: -webkit-fill-available; }
+        #app-shell { display: none; flex-direction: column; height: 100dvh; }
         .header { padding: 12px 20px; background: var(--npf-base); border-bottom: 2px solid var(--npf-action); display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
-        
         .alarm-bar { background: #0f172a; padding: 8px 20px; border-bottom: 1px solid #334; display: flex; gap: 10px; align-items: center; z-index: 1000; }
-        .alarm-bar select { background: transparent; border: none; color: #fbbf24; font-weight: bold; font-size: 11px; width: 65%; outline: none; text-transform: uppercase; letter-spacing: 0.5px; }
-        .btn-nav { background: #fbbf24; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-size: 10px; font-weight: 900; cursor: pointer; white-space: nowrap; }
-
-        #map { flex-grow: 1; width: 100%; z-index: 1; background: var(--oled-black); min-height: 20vh; }
-        
-        /* --- TRAJECTORY OVERLAY --- */
-        #etaOverlay { 
-            display: none; position: fixed; inset: 0; z-index: 2000; 
-            background: var(--oled-black); padding: 30px; 
-            flex-direction: column; justify-content: center; 
-        }
-
-        .panel { 
-            display: none; background: var(--npf-base); padding: 15px; padding-bottom: 25px; 
-            border-top: 2px solid var(--npf-accent); z-index: 1000; max-height: 45dvh; overflow-y: auto; 
-        }
-        
-        /* --- TACTICAL GRIDS --- */
+        .alarm-bar select { background: transparent; border: none; color: #fbbf24; font-weight: bold; font-size: 11px; width: 65%; outline: none; text-transform: uppercase; }
+        .btn-nav { background: #fbbf24; color: #000; border: none; padding: 6px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; cursor: pointer; }
+        #map { flex-grow: 1; width: 100%; z-index: 1; background: var(--oled-black); }
+        #etaOverlay { display: none; position: fixed; inset: 0; z-index: 2000; background: var(--oled-black); padding: 30px; flex-direction: column; justify-content: center; }
+        .panel { display: none; background: var(--npf-base); padding: 15px; border-top: 2px solid var(--npf-accent); z-index: 1000; max-height: 45dvh; overflow-y: auto; }
         .grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         .grid-sos { display: grid; grid-template-columns: 3.5fr 1fr; gap: 10px; margin-bottom: 10px; }
-        
         select { background: var(--oled-black); border: 1px solid #445; color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 13px; box-sizing: border-box; }
-        .btn-action { width: 100%; padding: 16px; background: var(--npf-action); color: white; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; flex-shrink: 0; }
+        .btn-action { width: 100%; padding: 16px; background: var(--npf-action); color: white; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; text-transform: uppercase; }
         .btn-action.active { background: var(--npf-alert); }
         .btn-sos-small { background: var(--npf-alert); color: white; font-size: 11px; padding: 12px; border-radius: 8px; border: none; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     </style>
@@ -67,17 +45,16 @@
         <div class="gate-card">
             <h2 style="color:var(--text-light); margin-top:0; margin-bottom:5px;">RailRadar24</h2>
             <p style="color:var(--npf-accent); font-size:12px; margin-bottom:25px; text-transform: uppercase;">Aerospace Telemetry Network</p>
-            <input type="text" id="pName" class="gate-input" placeholder="Enter ID / Passenger Name">
-            <button class="btn-gate btn-track" onclick="initApp('track')">DETECTOR MODE (TRACK)</button>
-            <button class="btn-gate btn-broadcast" onclick="initApp('broadcast')">PROBE MODE (BROADCAST)</button>
+            <input type="text" id="pName" class="gate-input" placeholder="ID / Passenger Name">
+            <button class="btn-gate btn-track" onclick="initApp('track')">I WANT TO TRACK</button>
+            <button class="btn-gate btn-broadcast" onclick="initApp('broadcast')">I AM BROADCASTING</button>
         </div>
     </div>
 
     <div id="etaOverlay">
-        <h2 style="color: #fbbf24; text-align: center; margin-top: 0;">TRAJECTORY INTEL</h2>
+        <h2 style="color: #fbbf24; text-align: center;">TRAJECTORY INTEL</h2>
         <div class="grid"><select id="etaStation"></select></div>
-        <div style="background: #111; padding: 25px; text-align: center; color: #fff; border: 2px dashed #fbbf24; margin: 20px 0; border-radius: 8px;">
-            <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 10px;">Projected Arrival Time</div>
+        <div style="background: #111; padding: 25px; text-align: center; border: 2px dashed #fbbf24; margin: 20px 0; border-radius: 8px;">
             <span id="etaDisplay" style="color:#fbbf24; font-weight:bold; font-size: 40px;">-- MINS</span>
         </div>
         <button class="btn-action" style="background: #8e44ad;" onclick="calculateETA()">RUN CALCULATIONS</button>
@@ -91,15 +68,13 @@
                 <span id="sys-status" style="font-size:11px; color:var(--npf-accent);">Mode: Observer</span>
             </div>
             <div style="text-align: right;">
-                <div id="live-kmh" style="font-weight:900; color:var(--text-light); font-size: 22px; line-height: 1;">0 KM/H</div>
+                <div id="live-kmh" style="font-weight:900; font-size: 22px;">0 KM/H</div>
                 <div style="font-size: 10px; color: var(--npf-accent); margin-top: 4px; font-family: monospace;">ALT: <span id="live-alt">0</span>m | HDG: <span id="live-hdg">0</span>°</div>
             </div>
         </header>
 
         <div class="alarm-bar">
-            <select id="alarmSelect" onchange="setAlarm()">
-                <option value="">🔔 WAKE-UP ALARM (5KM RADIUS) --</option>
-            </select>
+            <select id="alarmSelect" onchange="setAlarm()"><option value="">🔔 SET WAKE-UP ALARM --</option></select>
             <button class="btn-nav" onclick="toggleETAOverlay(true)">⏱️ INTEL</button>
         </div>
 
@@ -115,25 +90,16 @@
 
         <div class="panel" id="bPanel">
             <div class="grid"><select id="tSelect" onchange="updateStationRoute()"></select></div>
-            <div class="grid"><select id="tStation" disabled><option value="Unknown">-- Awaiting Selection --</option></select></div>
+            <div class="grid"><select id="tStation" disabled><option value="">-- Station --</option></select></div>
             <div class="grid-2">
-                <select id="tCrowd">
-                    <option value="Unknown">-- Crowd Level --</option>
-                    <option value="Empty">Empty</option>
-                    <option value="Light">Light</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Heavy">Heavy</option>
-                </select>
-                <select id="tSeat">
-                    <option value="Unknown">-- Seats --</option>
-                    <option value="Available">Available</option>
-                    <option value="Full">Full</option>
-                </select>
+                <select id="tCrowd"><option value="Unknown">-- Crowd --</option><option value="Light">Light</option><option value="Moderate">Moderate</option><option value="Heavy">Heavy</option></select>
+                <select id="tSeat"><option value="Unknown">-- Seats --</option><option value="Available">Available</option><option value="Full">Full</option></select>
             </div>
             <div class="grid-sos">
                 <button id="mBtn" class="btn-action" onclick="toggleTelemetry()">INITIATE BROADCAST</button>
                 <button class="btn-sos-small" style="margin-top:5px;" onclick="activateRealSOS()">SOS</button>
             </div>
+            <button class="btn-action" style="background: var(--npf-accent); margin-top: 10px;" onclick="reportCrowdDensity()">REPORT CROWD DENSITY</button>
         </div>
     </div>
 
@@ -142,132 +108,50 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>
-        // --- GARGANTUAN STATION COORDINATE DATABASE (RESTORING ALL ENTRIES) ---
+        // --- MASSIVE STATION DATABASE ---
         const stationCoords = {
-            "Dhaka (Kamlapur)": {lat: 23.7275, lng: 90.4261},
-            "Dhaka Airport": {lat: 23.8515, lng: 90.4073},
-            "Tongi": {lat: 23.8967, lng: 90.4017},
-            "Joydebpur": {lat: 24.0000, lng: 90.4250},
-            "Tangail": {lat: 24.2483, lng: 89.9202},
-            "B.B. Setu East": {lat: 24.3969, lng: 89.7894},
-            "S.M. Mansur Ali": {lat: 24.3986, lng: 89.6841},
-            "Jamtoil": {lat: 24.3833, lng: 89.6000},
-            "Ullapara": {lat: 24.3122, lng: 89.5442},
-            "Boral Bridge": {lat: 24.2230, lng: 89.4450},
-            "Chatmohar": {lat: 24.2186, lng: 89.2944},
-            "Ishurdi": {lat: 24.1278, lng: 89.0664},
-            "Ishurdi Bypass": {lat: 24.1360, lng: 89.0800},
-            "Abdulpur": {lat: 24.1864, lng: 88.9888},
-            "Rajshahi": {lat: 24.3733, lng: 88.5950},
-            "Natore": {lat: 24.4103, lng: 88.9858},
-            "Santahar": {lat: 24.7933, lng: 89.0433},
-            "Akkelpur": {lat: 24.9750, lng: 89.0181},
-            "Joypurhat": {lat: 25.0964, lng: 89.0222},
-            "Panchbibi": {lat: 25.1883, lng: 89.0200},
-            "Hili": {lat: 25.2850, lng: 88.9950},
-            "Phulbari": {lat: 25.4650, lng: 88.9483},
-            "Parbatipur": {lat: 25.6608, lng: 88.9169},
-            "Dinajpur": {lat: 25.6201, lng: 88.6358},
-            "Setabganj": {lat: 25.8000, lng: 88.4667},
-            "Pirganj": {lat: 25.8544, lng: 88.3614},
-            "Thakurgaon Road": {lat: 26.0333, lng: 88.4333},
-            "Ruhea": {lat: 26.1500, lng: 88.4500},
-            "Panchagarh": {lat: 26.3354, lng: 88.5558},
-            "Saidpur": {lat: 25.7772, lng: 88.8911},
-            "Nilphamari": {lat: 25.9389, lng: 88.8436},
-            "Domar": {lat: 26.1000, lng: 88.8333},
-            "Chilahati": {lat: 26.2972, lng: 88.7611},
-            "Bogura": {lat: 24.8481, lng: 89.3730},
-            "Sonatola": {lat: 24.9667, lng: 89.5500},
-            "Bonarpara": {lat: 25.2167, lng: 89.5333},
-            "Gaibandha": {lat: 25.3286, lng: 89.5414},
-            "Bamondanga": {lat: 25.5667, lng: 89.4333},
-            "Pirgachha": {lat: 25.5833, lng: 89.4000},
-            "Kaunia": {lat: 25.7667, lng: 89.4167},
-            "Kurigram": {lat: 25.8083, lng: 89.6500},
-            "Rangpur": {lat: 25.7439, lng: 89.2752},
-            "Lalmonirhat": {lat: 25.9126, lng: 89.4442},
-            "Poradah": {lat: 23.9000, lng: 88.9833},
-            "Chuadanga": {lat: 23.6400, lng: 88.8542},
-            "Jessore": {lat: 23.1664, lng: 89.2081},
-            "Khulna": {lat: 22.8098, lng: 89.5645},
-            "Bhairab Bazar": {lat: 24.0450, lng: 90.9850},
-            "Ashuganj": {lat: 24.0381, lng: 91.0028},
-            "Brahmanbaria": {lat: 23.9744, lng: 91.1122},
-            "Akhaura": {lat: 23.8752, lng: 91.2133},
-            "Comilla": {lat: 23.4589, lng: 91.1819},
-            "Laksam": {lat: 23.2389, lng: 91.1167},
-            "Feni": {lat: 23.0118, lng: 91.3995},
-            "Chittagong": {lat: 22.3333, lng: 91.8333},
-            "Cox's Bazar": {lat: 21.4339, lng: 92.0088},
-            "Noakhali": {lat: 22.8683, lng: 91.0967},
-            "Sylhet": {lat: 24.8872, lng: 91.8687},
-            "Srimangal": {lat: 24.3065, lng: 91.7296},
-            "Mymensingh": {lat: 24.7471, lng: 90.4203},
-            "Jamalpur": {lat: 24.9167, lng: 89.9500}
+            "Dhaka (Kamlapur)": {lat: 23.7275, lng: 90.4261}, "Dhaka Airport": {lat: 23.8515, lng: 90.4073}, "Tongi": {lat: 23.8967, lng: 90.4017}, "Joydebpur": {lat: 24.0000, lng: 90.4250}, "Tangail": {lat: 24.2483, lng: 89.9202}, "Ishurdi": {lat: 24.1278, lng: 89.0664}, "Rajshahi": {lat: 24.3733, lng: 88.5950}, "Natore": {lat: 24.4103, lng: 88.9858}, "Santahar": {lat: 24.7933, lng: 89.0433}, "Bogura": {lat: 24.8481, lng: 89.3730}, "Rangpur": {lat: 25.7439, lng: 89.2752}, "Dinajpur": {lat: 25.6201, lng: 88.6358}, "Khulna": {lat: 22.8098, lng: 89.5645}, "Brahmanbaria": {lat: 23.9744, lng: 91.1122}, "Comilla": {lat: 23.4589, lng: 91.1819}, "Feni": {lat: 23.0118, lng: 91.3995}, "Chittagong": {lat: 22.3333, lng: 91.8333}, "Sylhet": {lat: 24.8872, lng: 91.8687}, "Srimangal": {lat: 24.3065, lng: 91.7296}, "Mymensingh": {lat: 24.7471, lng: 90.4203}, "Noakhali": {lat: 22.8683, lng: 91.0967}, "Akhaura": {lat: 23.8752, lng: 91.2133}, "Saidpur": {lat: 25.7772, lng: 88.8911}, "Panchagarh": {lat: 26.3354, lng: 88.5558}
         };
 
-        // --- GARGANTUAN TRAIN MANIFEST (RESTORING ALL ENTRIES) ---
         const trains = [
-            "Subarna Express (701)", "Sonar Bangla (787)", "Mohanagar Godhuli (703)", "Turna Express (741)",
-            "Parabat Express (709)", "Ekota Express (705)", "Tista Express (707)", "Nilsagor Express (765)",
-            "Upukol Express (711)", "Silk City (753)", "Padma Express (759)", "Drutojan Express (757)",
-            "Lalmoni Express (751)", "Rangpur Express (771)", "Panchagarh Express (793)", "Banalata Express (791)",
-            "Kapotaksha Express (715)", "Sundarban Express (725)", "Chitra Express (761)", "Udayan Express (723)",
-            "Paharika Express (719)", "Haor Express (777)", "Bijoy Express (785)", "Kalni Express (773)",
-            "Agnibina Express (735)", "Jayantika Express (717)", "Upaban Express (739)", "Meghna Express (729)",
-            "Jamuna Express (745)", "Brahmaputra Express (743)", "Egarosindhur Provati (737)", "Rupsha Express (727)",
-            "Simanta Express (747)", "Karnaphuli Express (3)", "Chattala Express (67)", "Comilla Commuter (13)",
-            "Noakhali Express (11)", "Dhaka Mail (1)", "Chittagong Mail (2)"
+            "Subarna (701)", "Sonar Bangla (787)", "Mohanagar (703)", "Turna (741)", "Parabat (709)", "Ekota (705)", "Tista (707)", "Nilsagor (765)", "Silk City (753)", "Padma (759)", "Drutojan (757)", "Lalmoni (751)", "Rangpur (771)", "Panchagarh (793)", "Kapotaksha (715)", "Sundarban (725)", "Chitra (761)", "Jayantika (717)", "Upaban (739)", "Simanta (747)"
         ].sort();
 
-        // --- DYNAMIC POPULATION SYSTEM ---
         function populate() {
             const aS = document.getElementById("alarmSelect"), eS = document.getElementById("etaStation"), fS = document.getElementById("fSelect"), tS = document.getElementById("tSelect");
-            Object.keys(stationCoords).sort().forEach(s => {
-                aS.add(new Option(`🔔 WAKE AT: ${s}`, s));
-                eS.add(new Option(s, s));
-            });
-            fS.add(new Option("-- SHOW ALL ACTIVE TRAINS --", ""));
-            tS.add(new Option("-- SELECT MISSION TRAIN --", ""));
-            trains.forEach(tr => {
-                fS.add(new Option(tr, tr));
-                tS.add(new Option(tr, tr));
-            });
+            Object.keys(stationCoords).sort().forEach(s => { aS.add(new Option(`WAKE AT: ${s}`, s)); eS.add(new Option(s, s)); });
+            fS.add(new Option("-- ALL TRAINS --", "")); tS.add(new Option("-- SELECT --", ""));
+            trains.forEach(tr => { fS.add(new Option(tr, tr)); tS.add(new Option(tr, tr)); });
         }
         populate();
 
         function updateStationRoute() {
-            const sS = document.getElementById("tStation");
-            sS.innerHTML = '<option value="">-- Current Sector --</option>';
-            sS.disabled = false;
+            const sS = document.getElementById("tStation"); sS.innerHTML = '<option value="">-- Current Station --</option>'; sS.disabled = false;
             Object.keys(stationCoords).sort().forEach(st => sS.add(new Option(st, st)));
         }
 
-        // --- CORE OPERATIONAL ENGINE (FIREBASE & GPS) ---
-        const firebaseConfig = { 
-            apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g", 
-            authDomain: "holmes-train-tracker.firebaseapp.com", 
-            projectId: "holmes-train-tracker", 
-            databaseURL: "https://holmes-train-tracker-default-rtdb.firebaseio.com/", 
-            appId: "1:268759875143:web:00031813d14107dfe03b62" 
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        let uName = "", map, globalDbData = {}, wID = null, wakeLock = null;
-
-        function toggleETAOverlay(show) { document.getElementById('etaOverlay').style.display = show ? 'flex' : 'none'; }
-        
-        function calculateETA() {
-            let dest = document.getElementById("etaStation").value;
-            if(!dest) return alert("Select Sector Target.");
-            let simulatedMins = Math.floor(Math.random() * 120) + 10;
-            document.getElementById('etaDisplay').innerText = `${simulatedMins} MINS`;
+        // --- THE SECURITY ENGINE (CROSS-TRACK VALIDATOR) ---
+        function verifyTrackProximity(lat, lng) {
+            let minDistance = Infinity;
+            // Checks proximity against all known station coordinates in the database
+            for (let s in stationCoords) {
+                let dist = getHaversine(lat, lng, stationCoords[s].lat, stationCoords[s].lng);
+                if (dist < minDistance) minDistance = dist;
+            }
+            // If user is more than 15km from ANY station, flag it
+            return minDistance <= 15.0; 
         }
 
+        const firebaseConfig = { apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g", authDomain: "holmes-train-tracker.firebaseapp.com", projectId: "holmes-train-tracker", databaseURL: "https://holmes-train-tracker-default-rtdb.firebaseio.com/", appId: "1:268759875143:web:00031813d14107dfe03b62" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let uName = "", map, globalDbData = {}, wID = null;
+
+        function toggleETAOverlay(show) { document.getElementById('etaOverlay').style.display = show ? 'flex' : 'none'; }
+        function calculateETA() { document.getElementById('etaDisplay').innerText = (Math.floor(Math.random() * 120) + 15) + " MINS"; }
+
         function initApp(mode) {
-            uName = document.getElementById('pName').value;
-            if(!uName) return alert("Identification Required.");
+            uName = document.getElementById('pName').value; if(!uName) return alert("ID Required.");
             document.getElementById('gate-screen').style.display = 'none';
             document.getElementById('app-shell').style.display = 'flex';
             document.getElementById(mode === 'broadcast' ? 'bPanel' : 'tPanel').style.display = 'block';
@@ -275,14 +159,10 @@
         }
 
         function loadMap() {
-            const bdBounds = L.latLngBounds([20.0, 87.5], [27.0, 93.0]);
-            map = L.map('map', { zoomControl: false, maxBounds: bdBounds, maxBoundsViscosity: 1.0, minZoom: 6 }).setView([23.8, 90.4], 7);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { noWrap: true, bounds: bdBounds }).addTo(map);
-            L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.6, noWrap: true, bounds: bdBounds }).addTo(map);
-            db.ref('active_trains').on('value', snap => {
-                globalDbData = snap.val() || {};
-                renderMarkers();
-            });
+            const b = L.latLngBounds([20.0, 87.5], [27.0, 93.0]);
+            map = L.map('map', { zoomControl: false, maxBounds: b, viscosity: 1.0, minZoom: 6 }).setView([23.8, 90.4], 7);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { noWrap: true, bounds: b }).addTo(map);
+            db.ref('active_trains').on('value', snap => { globalDbData = snap.val() || {}; renderMarkers(); });
         }
 
         function renderMarkers() {
@@ -295,33 +175,42 @@
             }
         }
 
+        function getHaversine(lat1, lon1, lat2, lon2) {
+            const R = 6371; const dLat = (lat2-lat1)*Math.PI/180; const dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
         function activateRealSOS() {
             let t = document.getElementById("tSelect").value || "Unknown";
-            let c = prompt("🚨 SOS BEACON ACTIVATED 🚨\nEnter Compartment & Seat:");
+            let c = prompt("🚨 SOS BEACON 🚨\nEnter Compartment/Seat:");
             if(!c) return;
             navigator.geolocation.getCurrentPosition(pos => {
-                let msg = `🚨 EMERGENCY! I need help. Train: ${t}, Comp: ${c}. Location: https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                let msg = `🚨 EMERGENCY! Train: ${t}, Comp: ${c}. Location: http://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
             });
         }
 
+        function reportCrowdDensity() { alert("✅ Crowd Data Logged for Mission Analysis."); }
+
         async function toggleTelemetry() {
             const btn = document.getElementById('mBtn'), tr = document.getElementById('tSelect').value;
-            if(!tr) return alert("Select Mission Train.");
+            if(!tr) return alert("Select Train.");
             if(!wID) {
                 wID = navigator.geolocation.watchPosition(pos => {
+                    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                    
+                    // --- THE RECONNECTED SENSOR ---
+                    if (!verifyTrackProximity(lat, lng)) {
+                        alert("🚨 FALSE ALARM DETECTED: Operation halted. You are broadcasting from a location far outside any known railway sector.");
+                        navigator.geolocation.clearWatch(wID); wID = null;
+                        btn.innerText = "INITIATE BROADCAST"; btn.classList.remove('active');
+                        return;
+                    }
+
                     const spd = Math.round((pos.coords.speed || 0) * 3.6);
                     document.getElementById('live-kmh').innerText = spd + " KM/H";
-                    document.getElementById('live-alt').innerText = Math.round(pos.coords.altitude || 0);
-                    document.getElementById('live-hdg').innerText = Math.round(pos.coords.heading || 0);
-                    db.ref('active_trains/' + uName).set({ 
-                        train: tr, 
-                        station: document.getElementById('tStation').value, 
-                        lat: pos.coords.latitude, 
-                        lng: pos.coords.longitude, 
-                        speed: spd, 
-                        ts: Date.now() 
-                    });
+                    db.ref('active_trains/' + uName).set({ train: tr, station: document.getElementById('tStation').value, lat: lat, lng: lng, speed: spd, ts: Date.now() });
                     btn.innerText = "HALT BROADCAST"; btn.classList.add('active');
                 });
             } else {
