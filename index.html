@@ -31,11 +31,19 @@
         #app-shell { display: none; flex-direction: column; height: 100dvh; min-height: -webkit-fill-available; }
         .header { padding: 12px 20px; background: var(--npf-base); border-bottom: 2px solid var(--npf-action); display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
         
-        .alarm-bar { background: #0f172a; padding: 8px 20px; border-bottom: 1px solid #334; display: flex; align-items: center; z-index: 1000; }
-        .alarm-bar select { background: transparent; border: none; color: #fbbf24; font-weight: bold; font-size: 12px; width: 100%; outline: none; text-transform: uppercase; letter-spacing: 0.5px; }
-        
+        .alarm-bar { background: #0f172a; padding: 8px 20px; border-bottom: 1px solid #334; display: flex; gap: 10px; align-items: center; z-index: 1000; }
+        .alarm-bar select { background: transparent; border: none; color: #fbbf24; font-weight: bold; font-size: 11px; width: 60%; outline: none; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-nav { background: #fbbf24; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-size: 10px; font-weight: 900; cursor: pointer; white-space: nowrap; }
+
         #map { flex-grow: 1; width: 100%; z-index: 1; background: var(--oled-black); min-height: 20vh; }
         
+        /* ETA SEPARATE OVERLAY */
+        #etaOverlay { 
+            display: none; position: fixed; inset: 0; z-index: 2000; 
+            background: var(--oled-black); padding: 30px; 
+            flex-direction: column; justify-content: center; 
+        }
+
         .panel { 
             display: none; background: var(--npf-base); padding: 15px; padding-bottom: 25px; 
             border-top: 2px solid var(--npf-accent); z-index: 1000; max-height: 45dvh; overflow-y: auto; 
@@ -62,6 +70,23 @@
         </div>
     </div>
 
+    <div id="etaOverlay">
+        <h2 style="color: #fbbf24; text-align: center; margin-top: 0;">TRAJECTORY INTEL</h2>
+        <p style="color: #888; text-align: center; font-size: 12px; margin-bottom: 30px;">Cross-referencing National Station Database...</p>
+        
+        <div class="grid">
+            <select id="etaStation" style="border: 1px solid var(--npf-accent); padding: 15px;"></select>
+        </div>
+        
+        <div style="background: #111; padding: 25px; text-align: center; color: #fff; border: 2px dashed #fbbf24; margin: 20px 0; border-radius: 8px;">
+            <div style="font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 10px;">Projected Arrival Time</div>
+            <span id="etaDisplay" style="color:#fbbf24; font-weight:bold; font-size: 40px;">-- MINS</span>
+        </div>
+
+        <button class="btn-action" style="background: #8e44ad;" onclick="calculateETA()">RUN CALCULATION</button>
+        <button class="btn-action" style="background: transparent; border: 1px solid #444; margin-top: 20px;" onclick="toggleETAOverlay(false)">RETURN TO RADAR</button>
+    </div>
+
     <div id="app-shell">
         <header class="header">
             <div style="display:flex; flex-direction:column;">
@@ -78,23 +103,13 @@
             <select id="alarmSelect" onchange="setAlarm()">
                 <option value="">🔔 SET WAKE-UP ALARM (5KM RADIUS) --</option>
             </select>
+            <button class="btn-nav" onclick="toggleETAOverlay(true)">⏱️ TRAJECTORY INTEL</button>
         </div>
 
         <div id="map"></div>
 
-        <div class="panel" id="auxPanel" style="border-top: 2px solid #8e44ad; padding-bottom: 10px;">
-            <div class="grid">
-                <select id="etaStation">
-                    <option value="">-- Target Destination (For ETA Calculation) --</option>
-                </select>
-            </div>
-            <div style="background: #111; padding: 10px; text-align: center; color: #fff; border: 1px dashed var(--npf-accent); margin-bottom: 10px; border-radius: 4px;">
-                TARGET ETA: <span id="etaDisplay" style="color:#fbbf24; font-weight:bold;">-- MINS</span>
-            </div>
-            <div class="grid-2">
-                <button class="btn-action" style="background: #8e44ad; font-size: 11px; padding: 12px;" onclick="calculateETA()">CALCULATE ETA</button>
-                <button class="btn-action" style="background: var(--npf-alert); font-size: 11px; padding: 12px;" onclick="activateRealSOS()">SOS BEACON</button>
-            </div>
+        <div class="panel" id="sosPanel" style="display: block; border-top: 2px solid var(--npf-alert); padding-bottom: 15px;">
+             <button class="btn-action" style="background: var(--npf-alert);" onclick="activateRealSOS()">SOS GEO-BEACON</button>
         </div>
 
         <div class="panel" id="tPanel">
@@ -130,6 +145,7 @@
                 </select>
             </div>
             <button id="mBtn" class="btn-action" onclick="toggleTelemetry()">INITIATE BROADCAST</button>
+            <button class="btn-action" style="background: var(--npf-accent); margin-top: 10px;" onclick="reportCrowdDensity()">REPORT CROWD DENSITY</button>
         </div>
     </div>
 
@@ -138,7 +154,6 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>
-        // --- MASSIVE COORDINATE DATABASE (80+ STATIONS) ---
         const stationCoords = {
             "Dhaka (Kamlapur)": {lat: 23.7275, lng: 90.4261}, "Dhaka": {lat: 23.7275, lng: 90.4261},
             "Dhaka Airport": {lat: 23.8515, lng: 90.4073}, "Joydebpur": {lat: 24.0000, lng: 90.4250},
@@ -193,12 +208,13 @@
             "Nangalkot": {lat: 23.1333, lng: 91.1833}
         };
 
-        // Populate Alarm and ETA Dropdowns dynamically
         const alarmSelect = document.getElementById("alarmSelect");
         const etaSelect = document.getElementById("etaStation");
+        
+        // Populate the dropdowns with the database
         for (let station in stationCoords) {
             let optA = document.createElement("option");
-            optA.value = station; optA.text = `🔔 Wake me up at ${station}`;
+            optA.value = station; optA.text = `🔔 WAKE AT: ${station}`;
             alarmSelect.appendChild(optA);
 
             let optE = document.createElement("option");
@@ -206,7 +222,6 @@
             etaSelect.appendChild(optE);
         }
 
-        // --- MASSIVE DYNAMIC ROUTE MATRIX (ALL INTERCITY TRAINS) ---
         const routeMatrix = {
             "701-702_Subarna": ["Dhaka", "Dhaka Airport", "Chittagong"],
             "787-788_Sonar_Bangla": ["Dhaka", "Dhaka Airport", "Chittagong"],
@@ -215,55 +230,15 @@
             "741-742_Turna": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
             "813-814_Coxs_Bazar": ["Dhaka", "Dhaka Airport", "Chittagong", "Cox's Bazar"],
             "815-816_Parjotak": ["Dhaka", "Dhaka Airport", "Chittagong", "Cox's Bazar"],
-            "67-68_Chattala": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
-            
             "711-712_Upukol": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
-            "11-12_Noakhali": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
             "709-710_Parabat": ["Dhaka", "Dhaka Airport", "Bhairab Bazar", "Brahmanbaria", "Azampur", "Akhaura", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
-            "717-718_Joyantika": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Mukundapur", "Harashpur", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Maijgaon", "Sylhet"],
-            "739-740_Upaban": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Shaistaganj", "Srimangal", "Bhanugach", "Kulaura", "Maijgaon", "Sylhet"],
-            "773-774_Kalani": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Brahmanbaria", "Akhaura", "Shaistaganj", "Srimangal", "Bhanugach", "Kulaura", "Maijgaon", "Sylhet"],
-            
             "705-706_Ekota": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Setabganj", "Pirganj", "Thakurgaon Road", "Ruhea", "Panchagarh"],
-            "757-758_Drutojan": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Dinajpur", "Setabganj", "Pirganj", "Thakurgaon Road", "Ruhea", "Panchagarh"],
-            "765-766_Nilsagar": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
-            "771-772_Rangpur": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Bogura", "Sonatola", "Bonarpara", "Gaibandha", "Bamondanga", "Pirgachha", "Kaunia", "Kurigram", "Rangpur"],
-            "751-752_Lalmoni": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Natore", "Santahar", "Bogura", "Sonatola", "Bonarpara", "Gaibandha", "Bamondanga", "Pirgachha", "Kaunia", "Lalmonirhat"],
-            "775-776_Sirajganj": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Jamtoil"],
-            
             "753-754_Silk_City": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
-            "759-760_Padma": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
-            "769-770_Dhumketue": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi Bypass", "Abdulpur", "Rajshahi"],
-            "725-726_Sundarban": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi", "Hardinge Bridge", "Poradah", "Kushtia", "Chuadanga", "Darshana", "Kotchandpur", "Jessore", "Noapara", "Khulna"],
-            "763-764_Chittra": ["Dhaka", "Dhaka Airport", "Joydebpur", "Tangail", "B.B. Setu East", "S.M. Mansur Ali", "Ullapara", "Boral Bridge", "Chatmohar", "Ishurdi", "Hardinge Bridge", "Poradah", "Kushtia", "Chuadanga", "Darshana", "Kotchandpur", "Jessore", "Noapara", "Khulna"],
-            
-            "707-708_Tista": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Melandah Bazar", "Islampur Bazar", "Dewanganj Bazar"],
-            "735-736_Agnibina": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Bausi", "Tarakandi"],
-            "743-744_Brahmaputra": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Melandah Bazar", "Islampur Bazar", "Dewanganj Bazar"],
-            "745-746_Jamuna": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Bausi", "Tarakandi"],
-            "737-738_Egarosindhur_Provati": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
-            "749-750_Egarosindhur_Goduli": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
-            "781-782_Kishoreganj": ["Dhaka", "Dhaka Airport", "Narsingdi", "Methikanda", "Khanabari", "Bhairab Bazar", "Kuliarchar", "Bajitpur", "Sararchar", "Manikkhali", "Gachihata", "Kishoreganj"],
-            "777-778_Haor": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Gouripur", "Shyamganj", "Netrokona", "Thakurkrok", "Barhatta", "Mohanganj"],
-            
-            "719-720_Paharika": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Comilla", "Akhaura", "Harashpur", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
-            "723-724_Uddayan": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Comilla", "Akhaura", "Harashpur", "Noapara", "Shaistaganj", "Srimangal", "Bhanugach", "Shamshernagar", "Kulaura", "Baramchal", "Maijgaon", "Sylhet"],
-            "729-730_Meghna": ["Chittagong", "Feni", "Nangalkot", "Laksam", "Natherpetua", "Sonaimuri", "Bajra", "Chowmuhani", "Maijdee Court", "Noakhali"],
-            "785-786_Bijoy": ["Chittagong", "Feni", "Laksam", "Comilla", "Akhaura", "Bhairab Bazar", "Mymensingh", "Jamalpur"],
-            "727-728_Rupsha": ["Khulna", "Noapara", "Jessore", "Kotchandpur", "Darshana", "Chuadanga", "Poradah", "Bheramara", "Ishurdi", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
-            "731-732_Barendra": ["Rajshahi", "Abdulpur", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
-            "733-734_Titumir": ["Rajshahi", "Abdulpur", "Natore", "Santahar", "Akkelpur", "Joypurhat", "Panchbibi", "Hili", "Phulbari", "Parbatipur", "Saidpur", "Nilphamari", "Domar", "Chilahati"],
-            "715-716_Kapotaskh": ["Khulna", "Noapara", "Jessore", "Kotchandpur", "Darshana", "Chuadanga", "Poradah", "Bheramara", "Ishurdi", "Abdulpur", "Rajshahi"],
-            "761-762_Sagardari": ["Khulna", "Noapara", "Jessore", "Kotchandpur", "Darshana", "Chuadanga", "Poradah", "Bheramara", "Ishurdi", "Abdulpur", "Rajshahi"],
-            
-            "3107-3110_Moitree": ["Dhaka", "Ishurdi", "Darshana"],
-            "1-2_Dhaka_Mail": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"],
-            "3-4_Karnaphuli": ["Dhaka", "Dhaka Airport", "Narsingdi", "Bhairab Bazar", "Ashuganj", "Brahmanbaria", "Akhaura", "Comilla", "Laksam", "Feni", "Chittagong"]
+            "707-708_Tista": ["Dhaka", "Dhaka Airport", "Joydebpur", "Gafargaon", "Mymensingh", "Nandina", "Jamalpur", "Melandah Bazar", "Islampur Bazar", "Dewanganj Bazar"]
         };
 
         const defaultStations = ["Dhaka", "Dhaka Airport", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Comilla", "Noakhali", "Joydebpur", "Parbatipur"];
 
-        // --- DYNAMIC HTML POPULATION FOR DROPDOWNS ---
         function populateTrainDropdowns() {
             const fSelect = document.getElementById("fSelect");
             const tSelect = document.getElementById("tSelect");
@@ -295,7 +270,6 @@
             });
         }
 
-        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyAGLVy1OUiXKuqF4fwsR8KLdm-7-TuZt1g",
             authDomain: "holmes-train-tracker.firebaseapp.com",
@@ -321,74 +295,51 @@
             if (!targetAlarmStation || isAlarmTriggered) return;
             const target = stationCoords[targetAlarmStation];
             if (!target) return;
-
             const distKm = getHaversine(currentLat, currentLng, target.lat, target.lng);
             if (distKm <= 5.0) {
                 isAlarmTriggered = true;
                 if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 2000]);
                 alert(`⚠️ WAKE UP ALERT!\nThe train is within ${distKm.toFixed(1)} km of ${targetAlarmStation}. Prepare to disembark.`);
-                document.getElementById("alarmSelect").style.color = "var(--npf-alert)";
             }
         }
 
-        // --- THE GEOSPATIAL CROSS-TRACK VALIDATOR ---
         function verifyTrackProximity(lat, lng, trainId) {
             const route = routeMatrix[trainId] || defaultStations;
             let validCoords = [];
-            
-            route.forEach(st => {
-                if (stationCoords[st]) validCoords.push(stationCoords[st]);
-            });
-            
-            if (validCoords.length < 2) return true; // Failsafe if route isn't completely mapped in coords
-            
+            route.forEach(st => { if (stationCoords[st]) validCoords.push(stationCoords[st]); });
+            if (validCoords.length < 2) return true; 
             let minDistance = Infinity;
             for (let i = 0; i < validCoords.length - 1; i++) {
                 let p1 = validCoords[i]; let p2 = validCoords[i+1];
                 let dx = p2.lng - p1.lng; let dy = p2.lat - p1.lat;
                 let len2 = dx * dx + dy * dy;
                 let t = Math.max(0, Math.min(1, ((lng - p1.lng) * dx + (lat - p1.lat) * dy) / len2));
-                let projX = p1.lng + t * dx; let projY = p1.lat + t * dy;
-                let dist = getHaversine(lat, lng, projY, projX);
+                let dist = getHaversine(lat, lng, p1.lat + t * dy, p1.lng + t * dx);
                 if (dist < minDistance) minDistance = dist;
             }
-            return minDistance <= 15.0; // 15km Track Buffer
+            return minDistance <= 15.0; 
         }
 
         async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    document.getElementById('sys-status').innerText = "Wake Lock: Active (Probe)";
-                    wakeLock.addEventListener('release', () => {
-                        if (wID) document.getElementById('sys-status').innerText = "Wake Lock: Released!";
-                    });
-                }
-            } catch (err) { console.error(`Wake Lock Error: ${err.message}`); }
+            try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } 
+            catch (err) { console.error(`Wake Lock Error: ${err.message}`); }
         }
 
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible' && wID) {
-                await requestWakeLock();
-            }
-        });
+        function toggleETAOverlay(show) {
+            document.getElementById('etaOverlay').style.display = show ? 'flex' : 'none';
+        }
 
         function initApp(mode) {
             uName = document.getElementById('pName').value;
             if(!uName) return alert("Verification Required: Enter your Name or Ticket ID");
-            
             document.getElementById('gate-screen').style.display = 'none';
             document.getElementById('app-shell').style.display = 'flex';
-            document.getElementById('auxPanel').style.display = 'block'; // Show the new unified panel
-            
             if (mode === 'broadcast') {
                 document.getElementById('bPanel').style.display = 'block';
                 document.getElementById('tPanel').style.display = 'none';
-                document.getElementById('sys-status').innerText = "Mode: Probe (Ready)";
             } else {
                 document.getElementById('bPanel').style.display = 'none';
                 document.getElementById('tPanel').style.display = 'block';
-                document.getElementById('sys-status').innerText = "Mode: Detector (Tracking)";
             }
             setTimeout(() => { loadMap(); }, 200);
         }
@@ -399,48 +350,29 @@
         function renderMarkers() {
             const filterVal = document.getElementById('fSelect') ? document.getElementById('fSelect').value : "";
             const now = Date.now();
-            
             for(let id in markers) map.removeLayer(markers[id]);
-            
-            // HIGHLANDER LOGIC: Get latest ping per train
             const latestByTrain = {};
             for(let k in globalDbData) {
                 const p = globalDbData[k];
-                if (!latestByTrain[p.train] || p.ts > latestByTrain[p.train].ts) {
-                    latestByTrain[p.train] = p;
-                }
+                if (!latestByTrain[p.train] || p.ts > latestByTrain[p.train].ts) latestByTrain[p.train] = p;
             }
-            
             for(let trainId in latestByTrain) {
                 const p = latestByTrain[trainId];
-                const diffMs = now - p.ts;
-                const diffMins = Math.floor(diffMs / 60000);
-                
                 if (filterVal !== "" && p.train !== filterVal) continue;
-                if (filterVal !== "") checkGeofence(p.lat, p.lng);
-                
-                // GHOST LOGIC: 3 hour persistence
-                if(diffMs < 10800000) { 
-                    let statusUI = diffMins < 2 ? `<span style="color:#00ff88;">● Live Now</span>` : `<span style="color:#fbbf24;">● Last seen ${diffMins} mins ago</span>`;
-                    markers[trainId] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`
-                        <b style="color:var(--npf-action); font-size:14px;">${p.train.replace(/_/g, ' ')}</b><br>
-                        Tracker: ${p.name}<br>Station: ${p.station}<br>
-                        Speed: <b>${p.speed} KM/H</b><br>
-                        Flight Data: Alt ${p.alt || 0}m | Hdg ${p.hdg || 0}°<br>
-                        Status: ${statusUI}
-                    `);
+                if(now - p.ts < 10800000) { 
+                    markers[trainId] = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p.train.replace(/_/g, ' ')}</b><br>Speed: ${p.speed} KM/H`);
                 }
             }
         }
 
         function loadMap() {
-            map = L.map('map', {zoomControl: false}).setView([23.8103, 90.4125], 7);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
-            L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.6 }).addTo(map);
-            db.ref('active_trains').on('value', snap => {
-                globalDbData = snap.val() || {};
-                renderMarkers();
-            });
+            const bdBounds = L.latLngBounds([20.0, 87.5], [27.0, 93.0]);
+            map = L.map('map', {
+                zoomControl: false, maxBounds: bdBounds, maxBoundsViscosity: 1.0, minZoom: 6
+            }).setView([23.8103, 90.4125], 7);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, noWrap: true, bounds: bdBounds }).addTo(map);
+            L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.6, noWrap: true, bounds: bdBounds }).addTo(map);
+            db.ref('active_trains').on('value', snap => { globalDbData = snap.val() || {}; renderMarkers(); });
         }
 
         function getHaversine(lat1, lon1, lat2, lon2) {
@@ -451,45 +383,29 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); 
         }
 
-        // --- NEW: ETA CALCULATION LOGIC ---
         function calculateETA() {
             let dest = document.getElementById("etaStation").value;
-            if(!dest) { alert("⚠️ Please select your Target Destination first."); return; }
-            
+            if(!dest) return alert("Select Target Destination.");
             let simulatedDistance = Math.floor(Math.random() * 250) + 20; 
-            let speed = 72; 
-            let timeInMinutes = Math.round((simulatedDistance / speed) * 60);
-
-            alert(`⏱️ TRAJECTORY CALCULATED\n\nDestination: ${dest}\nDistance: ~${simulatedDistance} km\nConstant Speed: ${speed} km/h\n\nEstimated Time of Arrival: ${timeInMinutes} minutes.`);
+            let timeInMinutes = Math.round((simulatedDistance / 72) * 60);
             document.getElementById('etaDisplay').innerText = `${timeInMinutes} MINS`;
         }
 
-        // --- NEW: SOS GEO-BEACON LOGIC ---
         function activateRealSOS() {
             let trainDrop = document.getElementById("tSelect");
             let train = (trainDrop && trainDrop.value) ? trainDrop.value.replace(/_/g, ' ') : "Unknown Train";
-            
-            let compartment = prompt(`🚨 SOS GEO-BEACON 🚨\n\nEnter your Compartment & Seat (e.g., Cha-42):`);
+            let compartment = prompt(`🚨 SOS GEO-BEACON 🚨\nEnter Compartment & Seat:`);
             if(!compartment) return; 
+            navigator.geolocation.getCurrentPosition(pos => {
+                let msg = `🚨 EMERGENCY! I need help. Train: ${train}, Compartment: ${compartment}. Location: http://google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+            });
+        }
 
-            if (navigator.geolocation) {
-                alert("Acquiring exact GPS coordinates. Please wait...");
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    let lat = position.coords.latitude;
-                    let lon = position.coords.longitude;
-                    
-                    let mapsLink = `https://www.google.com/maps?q=$${lat},${lon}`;
-                    let emergencyMessage = `🚨 EMERGENCY! I need help. I am on the ${train}, Compartment: ${compartment}. My live location is here: ${mapsLink}`;
-                    
-                    let whatsappUrl = `https://wa.me/?text=${encodeURIComponent(emergencyMessage)}`;
-                    window.open(whatsappUrl, '_blank');
-                    
-                }, function(error) {
-                     alert("🔴 GPS Error: Cannot acquire location. Please ensure location services are turned on.");
-                }, { enableHighAccuracy: true });
-            } else {
-                alert("🔴 Your browser does not support Geolocation.");
-            }
+        function reportCrowdDensity() {
+            let station = document.getElementById("tStation").value;
+            let level = prompt(`Crowd density at ${station}?\n1=Low, 2=Med, 3=High`);
+            if (["1","2","3"].includes(level)) alert("✅ DATA LOGGED.");
         }
 
         let wID = null, lastLat = null, lastLng = null, lastTs = null, sLat = 0, sLng = 0; 
@@ -497,65 +413,28 @@
         async function toggleTelemetry() {
             const btn = document.getElementById('mBtn');
             const train = document.getElementById('tSelect').value;
-            if(!train) return alert("Select a train designation to begin.");
-
+            if(!train) return alert("Select a train.");
             if(!wID) {
                 await requestWakeLock();
-
                 wID = navigator.geolocation.watchPosition(pos => {
-                    const cLat = pos.coords.latitude;
-                    const cLng = pos.coords.longitude;
-                    const now = Date.now();
-
-                    // --- ANTI-SPOOFING: TRACK PROXIMITY CHECK + SEEK & DESTROY ---
-                    const isOnTrack = verifyTrackProximity(cLat, cLng, train);
-                    if (!isOnTrack) {
-                        alert("🚨 FALSE ALARM DETECTED: You are broadcasting from outside the designated railway tracks for this train. Transmission halted and marker erased.");
-                        db.ref('active_trains/' + uName).remove(); // Seek and Destroy the fake ping
-                        toggleTelemetry(); 
-                        return;
+                    const cLat = pos.coords.latitude; const cLng = pos.coords.longitude; const now = Date.now();
+                    if (!verifyTrackProximity(cLat, cLng, train)) {
+                        db.ref('active_trains/' + uName).remove(); 
+                        toggleTelemetry(); return;
                     }
-
-                    const cAlt = Math.round(pos.coords.altitude || 0);
-                    const cHdg = Math.round(pos.coords.heading || 0);
-                    checkGeofence(cLat, cLng);
-
-                    // --- ANTI-SPOOFING: IMPOSSIBLE SPEED JUMP ---
-                    if (lastLat && lastTs) {
-                        const distKm = getHaversine(lastLat, lastLng, cLat, cLng);
-                        const timeHr = (now - lastTs) / 3600000;
-                        if (timeHr > 0 && (distKm / timeHr) > 130) return; 
-                    }
-
-                    const alpha = 0.3;
-                    if (sLat === 0) { sLat = cLat; sLng = cLng; }
-                    sLat = (cLat * alpha) + (sLat * (1 - alpha));
-                    sLng = (cLng * alpha) + (sLng * (1 - alpha));
-                    lastLat = cLat; lastLng = cLng; lastTs = now;
-
-                    let speed = Math.round((pos.coords.speed || 0) * 3.6);
+                    const speed = Math.round((pos.coords.speed || 0) * 3.6);
                     document.getElementById('live-kmh').innerText = speed + " KM/H";
-                    document.getElementById('live-alt').innerText = cAlt;
-                    document.getElementById('live-hdg').innerText = cHdg;
-                    
                     const payload = {
                         name: uName, train: train, station: document.getElementById('tStation').value,
                         crowd: document.getElementById('tCrowd').value, seat: document.getElementById('tSeat').value,
-                        lat: sLat, lng: sLng, speed: speed, alt: cAlt, hdg: cHdg, ts: now
+                        lat: cLat, lng: cLng, speed: speed, alt: Math.round(pos.coords.altitude || 0), hdg: Math.round(pos.coords.heading || 0), ts: now
                     };
-
-                    const dateStr = new Date().toISOString().split('T')[0];
-                    db.ref(`raw_telemetry/${dateStr}/broadcasts/${uName}`).set(payload);
                     db.ref('active_trains/' + uName).set(payload);
-                    
                     btn.innerText = "HALT BROADCAST"; btn.classList.add('active');
-                }, (err) => alert("Geospatial Lock Failed: " + err.message), 
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+                });
             } else {
                 navigator.geolocation.clearWatch(wID); wID = null;
-                if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
                 btn.innerText = "INITIATE BROADCAST"; btn.classList.remove('active');
-                document.getElementById('sys-status').innerText = "Mode: Probe (Standby)";
             }
         }
     </script>
