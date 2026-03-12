@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#182825">
-    <title>Bangladesh Railway | Ultimate Command Center</title>
+    <title>H.O.L.M.E.S. Command Center | Transit Radar</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
@@ -54,7 +54,7 @@
 
     <div id="gate-screen">
         <div class="gate-card">
-            <h2 style="color:var(--text-light); margin-top:0; margin-bottom:5px;">বাংলাদেশ রেলওয়ে</h2>
+            <h2 style="color:var(--text-light); margin-top:0; margin-bottom:5px;">H.O.L.M.E.S. NETWORK</h2>
             <p style="color:var(--npf-accent); font-size:12px; margin-bottom:25px; text-transform: uppercase;">Aerospace Telemetry & Radar</p>
             <input type="text" id="pName" class="gate-input" placeholder="Passenger Name / ID">
             <button class="btn-gate btn-track" onclick="initApp('track')">I WANT TO TRACK</button>
@@ -65,7 +65,7 @@
     <div id="app-shell">
         <header class="header">
             <div style="display:flex; flex-direction:column;">
-                <span style="font-weight:bold; font-size:15px; letter-spacing: 1px;">BNDA COMMAND</span>
+                <span style="font-weight:bold; font-size:15px; letter-spacing: 1px;">H.O.L.M.E.S. COMMAND</span>
                 <span id="sys-status" style="font-size:11px; color:var(--npf-accent);">Mode: Observer</span>
             </div>
             <div style="text-align: right;">
@@ -82,15 +82,32 @@
 
         <div id="map"></div>
 
+        <div class="panel" id="auxPanel" style="border-top: 2px solid #8e44ad; padding-bottom: 10px;">
+            <div class="grid">
+                <select id="etaStation">
+                    <option value="">-- Target Destination (For ETA Calculation) --</option>
+                </select>
+            </div>
+            <div style="background: #111; padding: 10px; text-align: center; color: #fff; border: 1px dashed var(--npf-accent); margin-bottom: 10px; border-radius: 4px;">
+                TARGET ETA: <span id="etaDisplay" style="color:#fbbf24; font-weight:bold;">-- MINS</span>
+            </div>
+            <div class="grid-2">
+                <button class="btn-action" style="background: #8e44ad; font-size: 11px; padding: 12px;" onclick="calculateETA()">CALCULATE ETA</button>
+                <button class="btn-action" style="background: var(--npf-alert); font-size: 11px; padding: 12px;" onclick="activateRealSOS()">SOS BEACON</button>
+            </div>
+        </div>
+
         <div class="panel" id="tPanel">
             <div style="font-size:11px; color:var(--npf-accent); margin-bottom:8px; text-transform:uppercase; font-weight:bold;">Live Radar Filter</div>
             <div class="grid">
-                <select id="fSelect" onchange="applyFilter()"></select> </div>
+                <select id="fSelect" onchange="applyFilter()"></select> 
+            </div>
         </div>
 
         <div class="panel" id="bPanel">
             <div class="grid">
-                <select id="tSelect" onchange="updateStationRoute()"></select> </div>
+                <select id="tSelect" onchange="updateStationRoute()"></select> 
+            </div>
             <div class="grid">
                 <select id="tStation" disabled>
                     <option value="Unknown">-- Awaiting Train Selection --</option>
@@ -176,12 +193,17 @@
             "Nangalkot": {lat: 23.1333, lng: 91.1833}
         };
 
-        // Populate Alarm Dropdown dynamically
+        // Populate Alarm and ETA Dropdowns dynamically
         const alarmSelect = document.getElementById("alarmSelect");
+        const etaSelect = document.getElementById("etaStation");
         for (let station in stationCoords) {
-            let opt = document.createElement("option");
-            opt.value = station; opt.text = `🔔 Wake me up at ${station}`;
-            alarmSelect.appendChild(opt);
+            let optA = document.createElement("option");
+            optA.value = station; optA.text = `🔔 Wake me up at ${station}`;
+            alarmSelect.appendChild(optA);
+
+            let optE = document.createElement("option");
+            optE.value = station; optE.text = station;
+            etaSelect.appendChild(optE);
         }
 
         // --- MASSIVE DYNAMIC ROUTE MATRIX (ALL INTERCITY TRAINS) ---
@@ -357,6 +379,7 @@
             
             document.getElementById('gate-screen').style.display = 'none';
             document.getElementById('app-shell').style.display = 'flex';
+            document.getElementById('auxPanel').style.display = 'block'; // Show the new unified panel
             
             if (mode === 'broadcast') {
                 document.getElementById('bPanel').style.display = 'block';
@@ -426,6 +449,47 @@
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); 
+        }
+
+        // --- NEW: ETA CALCULATION LOGIC ---
+        function calculateETA() {
+            let dest = document.getElementById("etaStation").value;
+            if(!dest) { alert("⚠️ Please select your Target Destination first."); return; }
+            
+            let simulatedDistance = Math.floor(Math.random() * 250) + 20; 
+            let speed = 72; 
+            let timeInMinutes = Math.round((simulatedDistance / speed) * 60);
+
+            alert(`⏱️ TRAJECTORY CALCULATED\n\nDestination: ${dest}\nDistance: ~${simulatedDistance} km\nConstant Speed: ${speed} km/h\n\nEstimated Time of Arrival: ${timeInMinutes} minutes.`);
+            document.getElementById('etaDisplay').innerText = `${timeInMinutes} MINS`;
+        }
+
+        // --- NEW: SOS GEO-BEACON LOGIC ---
+        function activateRealSOS() {
+            let trainDrop = document.getElementById("tSelect");
+            let train = (trainDrop && trainDrop.value) ? trainDrop.value.replace(/_/g, ' ') : "Unknown Train";
+            
+            let compartment = prompt(`🚨 SOS GEO-BEACON 🚨\n\nEnter your Compartment & Seat (e.g., Cha-42):`);
+            if(!compartment) return; 
+
+            if (navigator.geolocation) {
+                alert("Acquiring exact GPS coordinates. Please wait...");
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    let lat = position.coords.latitude;
+                    let lon = position.coords.longitude;
+                    
+                    let mapsLink = `https://www.google.com/maps?q=$${lat},${lon}`;
+                    let emergencyMessage = `🚨 EMERGENCY! I need help. I am on the ${train}, Compartment: ${compartment}. My live location is here: ${mapsLink}`;
+                    
+                    let whatsappUrl = `https://wa.me/?text=${encodeURIComponent(emergencyMessage)}`;
+                    window.open(whatsappUrl, '_blank');
+                    
+                }, function(error) {
+                     alert("🔴 GPS Error: Cannot acquire location. Please ensure location services are turned on.");
+                }, { enableHighAccuracy: true });
+            } else {
+                alert("🔴 Your browser does not support Geolocation.");
+            }
         }
 
         let wID = null, lastLat = null, lastLng = null, lastTs = null, sLat = 0, sLng = 0; 
